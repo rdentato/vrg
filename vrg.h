@@ -20,7 +20,7 @@ in the example below.
 
 Example:
 
-    #include "utl.h"
+    #include "vrg.h"
 
     int my_func(int a, char b, void *c);
     
@@ -52,10 +52,11 @@ Example:
        // Here filename is optional
    }
  }
- // when here the vrgargn variable contains the current argument
- // to be processed
- // Example:   prg -f fname pluto
- //            if -f takes fname as argument, vrgargn will be 3
+ // At the end, the vrgargn variable contains the number of the argument
+ // that is sill to be processed
+ // Example (assuming -f takes an argument):
+//    prg -f fname pluto
+ // vrgargn will be 3
  //
 
  vrghelp(); // Will print the list of defined options
@@ -70,6 +71,8 @@ Example:
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
+#include <stdlib.h>
+#include <ctype.h>
 
 #define vrg_cnt(vrg1,vrg2,vrg3,vrg4,vrg5,vrg6,vrg7,vrg8,vrgN, ...) vrgN
 #define vrg_argn(...)  vrg_cnt(__VA_ARGS__, 8, 7, 6, 5, 4, 3, 2, 1, 0)
@@ -78,13 +81,16 @@ Example:
 
 #define vrg(vrg_f,...) vrg_cat(vrg_f, vrg_argn(__VA_ARGS__))(__VA_ARGS__)
 
-// Command line options arguments
+#ifndef VRGMAXOPTS
+#define VRGMAXOPTS 16
+#endif
 
-typedef struct vrg_opt_s {
-  struct vrg_opt_s *next;
-  char *opt;
-  char *desc;
-} vrg_opt_t;
+extern int vrg_numopts;
+
+char *vrg_optlist[VRGMAXOPTS];
+
+// Command line options arguments
+extern int vrg_maxlen;
 
 extern int    vrgargn;
 extern int    vrg_argc;
@@ -94,52 +100,56 @@ extern char *vrgoptarg;
 extern int   vrglen;
 char        *vrg_ver;
 
-#define vrgver(s) vrg_ver = (s)
+extern char *vrg_emptystr;
 
-extern vrg_opt_t *vrg_opt_list;
+#define vrgver(s) vrg_ver = (s)
 
 int vrg_isopt(char *opt);
 int vrghelp();
-
-int vrg_checkopt();
+int vrgerror(char *err);
+int vrg_nxtopt();
+void vrg_collect(char *opt);
 
 #define vrgoptions(vrg_argc_,vrg_argv_) \
-  for (vrgargn = 0, vrg_argc = vrg_argc_, vrg_argv = vrg_argv_, errno = 0 , vrglen = 1\
-      ; vrg_checkopt() \
+  for (vrgargn = 0, vrg_argc = vrg_argc_, vrg_argv = vrg_argv_, errno = 0\
+      ; vrg_nxtopt() \
       ; vrgargn++ ) 
 
-#define vrgopt(vrg_opt_,vrg_desc_) \
-  static vrg_opt_t vrg_cat(vrg_OPT_,__LINE__);\
+#define vrgopt(vrg_opt_) \
   if (vrgargn == 0) { \
-    vrg_cat(vrg_OPT_,__LINE__) .next = vrg_opt_list; \
-    vrg_opt_list = &(vrg_cat(vrg_OPT_,__LINE__)); \
-    vrg_cat(vrg_OPT_,__LINE__) .opt = vrg_opt_; \
-    vrg_cat(vrg_OPT_,__LINE__) .desc = vrg_desc_; \
+    vrg_collect(vrg_opt_); \
   } \
-  else if (!vrg_isopt(vrg_cat(vrg_OPT_,__LINE__) .opt)) ; \
+  else if (!vrg_isopt(vrg_opt_)); \
   else
-
 
 #ifdef VRG_MAIN
 
-#include "dbg.h"
+int vrg_maxlen = 0;
 
 int    vrgargn;
 int    vrg_argc;
 char **vrg_argv=NULL;
 
+int vrg_numopts=0;
+
 char *vrgoptarg;
-int   vrglen;
+int   vrglen=-1;
 
 char *vrgver = NULL;
 
-vrg_opt_t *vrg_opt_list = NULL;
+char *vrg_emptystr = "";
 
 static int vrg_err(char *opt)
 {
   char *s = opt;
   while (*s && !isspace(*s)) s++;
-  fprintf(stderr,"ERROR: Invalid '%.*s'\n", (int)(s-opt),opt);
+  fprintf(stderr,"fatal error: invalid option '%.*s'\n", (int)(s-opt),opt);
+  return vrghelp();
+}
+
+int vrgerror(char *err)
+{
+  fprintf(stderr,"%s\n", err);
   return vrghelp();
 }
 
@@ -148,86 +158,66 @@ int vrghelp()
   char *s = vrg_argv[0];
   while (*s) s++;
   while ((s > vrg_argv[0]) && (s[-1] !='\\') && (s[-1] != '/')) s--;
-  if (vrg_ver && *vrg_ver) 
-    fprintf(stderr, "%s\n",vrg_ver);
+  if (vrg_ver && *vrg_ver) fprintf(stderr, "%s\n",vrg_ver);
   fprintf(stderr, "Usage: %s [OPTIONS] ...\n",s);
-  for (vrg_opt_t *opt=vrg_opt_list; opt; opt=opt->next) {
-      fprintf(stderr, "   %s\t\t%s\n",opt->opt,opt->desc);
+  for (int k=0; k<vrg_numopts;k++) {
+    int j=vrg_maxlen;
+    char *s=vrg_optlist[k];
+    while (j>0 && *s && *s != '\t') { fputc(*s++,stderr); j--;}
+    while (j>0) { fputc(' ',stderr); j--;}
+    if (*s) s++;
+    fprintf(stderr, "  %s\n",s);
   }
   exit(1);
 }
 
-int vrg_checkopt()
+int vrg_nxtopt()
 {
-
-  if (vrgargn == 0) return 1;
-
-  if (vrglen == 0) {
-    vrg_err(vrg_argv[vrgargn-1]);
-    return 0;
-  }
-  vrglen = 0;
-
-  if (vrgargn >= vrg_argc) return 0;
-
-  if (!(vrg_argv[vrgargn][0] == '-' && vrg_argv[vrgargn][1]))
-    return 0;
-
-  
-  if (vrg_isopt("--")) {
-      vrgargn++; return 0;
-  }
-
-  if (vrg_isopt("-h")) {
-      vrgargn++; 
-      vrghelp(); return 1;
-  }
-  
-  return 1;
+  return (vrgargn == 0)
+         || ((vrgargn < vrg_argc) 
+            && (vrg_argv[vrgargn][0] == '-') 
+            && (vrg_argv[vrgargn][1] != '\0'));
 }
 
+void vrg_collect(char *opt)
+{
+  char *s = opt;
+  vrg_optlist[vrg_numopts++] = opt;
+  for(;*s && *s!= '\t';s++);
+  if (vrg_maxlen < (s - opt)) vrg_maxlen = (s - opt);
+}
 
 // Example: "-o [filename]"
 //          "myprg -fpippo"
 //
 int vrg_isopt(char *opt)
 {
-  int ret = 0;
   int opt_ndx=0;
-  int arg_ndx=0;
   char *arg=vrg_argv[vrgargn];
  
-  vrgoptarg = NULL; 
+  if (arg == NULL || arg[0]!= '-') return 0;
 
-  if (arg == NULL) return 0;
+  vrgoptarg = vrg_emptystr; 
+  vrglen = 0;
 
-  _dbgtrc("ISOPT: '%s' '%s'",opt,arg);
+  if (opt[1]==arg[1]) {
+    opt_ndx = 2;
+    while (opt[opt_ndx] == ' ') opt_ndx++ ;
+    if (opt[opt_ndx] == '\t') return 1;
 
-  while (opt[opt_ndx] && !isspace(opt[opt_ndx])) opt_ndx++ ;
-  if (strncmp(opt,arg,opt_ndx) == 0) {
-    ret = 1;
-    arg_ndx = opt_ndx;
-    while (opt[opt_ndx] && isspace(opt[opt_ndx])) opt_ndx++; // I'm on the arg.
-    if (opt[opt_ndx]) { // Need arg
-     _dbgtrc("OPT USE ARG (%c)",opt[opt_ndx]);
-      if (arg[arg_ndx])
-        vrgoptarg = arg+arg_ndx;
-      else if (vrgargn+1 < vrg_argc) {
-        if (vrg_argv[vrgargn+1][0] != '-')
-          vrgoptarg = vrg_argv[++vrgargn];
-      }
-      if (vrgoptarg == NULL) vrgoptarg = "";
+    if (arg[2] != 0)
+      vrgoptarg = arg+2;
+    else if (vrgargn+1 < vrg_argc)
+      vrgoptarg = vrg_argv[++vrgargn];
 
-     _dbgtrc("OPT USE ARG: '%s'",vrgoptarg);
-
-      if (*vrgoptarg == '\0' && opt[opt_ndx] != '[')  {
-        errno = vrg_err(opt);
-        ret = 0;
-      }
+    if ((vrgoptarg == vrg_emptystr) && (opt[opt_ndx] != '['))  {
+       errno = vrg_err(opt);
+       return 0;
     }
-    vrglen = ret;
+    vrglen = strlen(vrgoptarg);
+    return 1;
   }
-  return ret;
+  return 0;
 }
 
 #endif 
