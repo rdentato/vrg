@@ -107,8 +107,8 @@ extern char *vrg_emptystr;
 int vrg_isopt(char *opt);
 int vrghelp();
 int vrgerror(char *err);
+
 int vrg_nxtopt();
-void vrg_collect(char *opt);
 
 #define vrgoptions(vrg_argc_,vrg_argv_) \
   for (vrgargn = 0, vrg_argc = vrg_argc_, vrg_argv = vrg_argv_, errno = 0\
@@ -117,9 +117,20 @@ void vrg_collect(char *opt);
 
 #define vrgopt(vrg_opt_) \
   if (vrgargn == 0) { \
-    vrg_collect(vrg_opt_); \
+    char *s; \
+    vrg_optlist[vrg_numopts++] = vrg_opt_; \
+    for(s=vrg_opt_;*s && *s!= '\t';s++); \
+    if (vrg_maxlen < (s-vrg_opt_)) vrg_maxlen = (s-vrg_opt_); \
   } \
   else if (!vrg_isopt(vrg_opt_)); \
+  else
+
+#define vrgoptdefault \
+  if ((vrgargn == 0) || \
+      (vrgargn >= vrg_argc) || \
+      (vrg_argv[vrgargn][0] != '-') || \
+      (vrg_argv[vrgargn][1] == '\0') || \
+      (vrg_argv[vrgargn][1] == ' ')); \
   else
 
 #ifdef VRG_MAIN
@@ -143,7 +154,7 @@ static int vrg_err(char *opt)
 {
   char *s = opt;
   while (*s && !isspace(*s)) s++;
-  fprintf(stderr,"fatal error: invalid option '%.*s'\n", (int)(s-opt),opt);
+  fprintf(stderr,"ERROR: Invalid '%.*s'\n", (int)(s-opt),opt);
   return vrghelp();
 }
 
@@ -177,14 +188,6 @@ int vrg_nxtopt()
          || ((vrgargn < vrg_argc) 
             && (vrg_argv[vrgargn][0] == '-') 
             && (vrg_argv[vrgargn][1] != '\0'));
-}
-
-void vrg_collect(char *opt)
-{
-  char *s = opt;
-  vrg_optlist[vrg_numopts++] = opt;
-  for(;*s && *s!= '\t';s++);
-  if (vrg_maxlen < (s - opt)) vrg_maxlen = (s - opt);
 }
 
 // Example: "-o [filename]"

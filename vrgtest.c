@@ -40,6 +40,11 @@ int main(int argc, char *argv[])
       printf("You specified the '-m' option with argument '%.*s'\n",vrglen,vrgoptarg);
      }
 
+     vrgoptdefault {
+      // Here you can deal with unknown options. You may generate an error or just skip it
+      fprintf(stderr,"WARNING: ignored option -%c\n",argv[vrgargn][1]);
+     }
+ 
    }
 
    // The variable vrgargn will tell you if there are other arguments to be 
