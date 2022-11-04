@@ -19,7 +19,7 @@ how it should be called when invoked with 1, 2 or 3 paramenters as shown
 in the example below.
 
 Example:
-
+  
     #include "vrg.h"
 
     int my_func(int a, char b, void *c);
@@ -32,31 +32,35 @@ Example:
 # Command line options
  A minimal replacement of getopt.
 
- void vrgerror(char *s)
- {
-   // Will be called if an error occurs
-   fprintf(stderr,"Missing argument for option: `%s`\n",s);
- }
+ Define `VRGOPTS` and include `vrg.h` only once, usually in the same source where `main()` is.
+
+  #define VRGOPTS
+  #include "vrg.h"
 
 ... In the code: 
 
  vrgoptions(argc,argv) {  // as received by main
 
-   vrgopt("-f filename","Load file") {
+   vrgopt("-f filename\tLoad file") { // explanation of the opt comes after \t
       // Will work both for `-f pippo` and `-fpippo`
       // Set what you need to set
       printf("file: `.*s`",vrglen, vrgoptarg);
    }
 
-   vrgopt("-o [filename]", "Enable output (on stdout by default)") {
+   vrgopt("-o [filename]\tEnable output (on stdout by default)") {
        // Here filename is optional
    }
+
+   vrgoptdefault {
+      // cought an unrecognized parameter.
+   }
  }
- // At the end, the vrgargn variable contains the number of the argument
- // that is sill to be processed
+ // At the end, the vrgargn variable contains the index of the argument
+ // that is sill to be processed:
+ //
  // Example (assuming -f takes an argument):
-//    prg -f fname pluto
- // vrgargn will be 3
+ //    prg -f fname pluto
+ // vrgargn will be 3 pointing to "pluto" (argv[3])
  //
 
  vrghelp(); // Will print the list of defined options
@@ -65,7 +69,7 @@ Example:
 ***/
 
 #ifndef VRG_VERSION
-#define VRG_VERSION 0x0001000C
+#define VRG_VERSION 0x0001001C
 
 #include <stdio.h>
 #include <stdint.h>
@@ -74,6 +78,8 @@ Example:
 #include <stdlib.h>
 #include <ctype.h>
 
+// Variadic functions
+
 #define vrg_cnt(vrg1,vrg2,vrg3,vrg4,vrg5,vrg6,vrg7,vrg8,vrgN, ...) vrgN
 #define vrg_argn(...)  vrg_cnt(__VA_ARGS__, 8, 7, 6, 5, 4, 3, 2, 1, 0)
 #define vrg_cat0(x,y)  x ## y
@@ -81,39 +87,29 @@ Example:
 
 #define vrg(vrg_f,...) vrg_cat(vrg_f, vrg_argn(__VA_ARGS__))(__VA_ARGS__)
 
+
+// Command line options arguments
+
+#ifdef VRGOPTS
+
 #ifndef VRGMAXOPTS
 #define VRGMAXOPTS 16
 #endif
 
-extern int vrg_numopts;
+static char *vrg_optlist[VRGMAXOPTS];
 
-char *vrg_optlist[VRGMAXOPTS];
-
-// Command line options arguments
-extern int vrg_maxlen;
-
-extern int    vrgargn;
-extern int    vrg_argc;
-extern char **vrg_argv;
-
-extern char *vrgoptarg;
-extern int   vrglen;
-char        *vrg_ver;
-
-extern char *vrg_emptystr;
+static char *vrg_ver;
 
 #define vrgver(s) vrg_ver = (s)
 
-int vrg_isopt(char *opt);
-int vrghelp();
-int vrgerror(char *err);
-
-int vrg_nxtopt();
+static int vrg_isopt(char *opt);
+static int vrghelp();
+static int vrg_nxtopt();
 
 #define vrgoptions(vrg_argc_,vrg_argv_) \
-  for (vrgargn = 0, vrg_argc = vrg_argc_, vrg_argv = vrg_argv_, errno = 0\
+  for (vrgargn = 0, vrg_argc = vrg_argc_, vrg_argv = vrg_argv_, vrg_count = 0, errno = 0\
       ; vrg_nxtopt() \
-      ; vrgargn++ ) 
+      ; vrg_count = 0, vrgargn++ ) 
 
 #define vrgopt(vrg_opt_) \
   if (vrgargn == 0) { \
@@ -126,29 +122,26 @@ int vrg_nxtopt();
   else
 
 #define vrgoptdefault \
-  if ((vrgargn == 0) || \
+  if ((vrg_count > 0) || \
+      (vrgargn == 0) || \
       (vrgargn >= vrg_argc) || \
       (vrg_argv[vrgargn][0] != '-') || \
       (vrg_argv[vrgargn][1] == '\0') || \
       (vrg_argv[vrgargn][1] == ' ')); \
   else
 
-#ifdef VRG_MAIN
+static int   vrgargn;
+static char *vrgoptarg;
+static int   vrglen=-1;
 
-int vrg_maxlen = 0;
+static int vrg_maxlen = 0;
+static int vrg_count;
+static int vrg_argc;
+static char **vrg_argv=NULL;
 
-int    vrgargn;
-int    vrg_argc;
-char **vrg_argv=NULL;
+static int vrg_numopts=0;
 
-int vrg_numopts=0;
-
-char *vrgoptarg;
-int   vrglen=-1;
-
-char *vrgver = NULL;
-
-char *vrg_emptystr = "";
+static char *vrg_emptystr = "";
 
 static int vrg_err(char *opt)
 {
@@ -158,13 +151,7 @@ static int vrg_err(char *opt)
   return vrghelp();
 }
 
-int vrgerror(char *err)
-{
-  fprintf(stderr,"%s\n", err);
-  return vrghelp();
-}
-
-int vrghelp()
+static int vrghelp()
 {
   char *s = vrg_argv[0];
   while (*s) s++;
@@ -182,7 +169,7 @@ int vrghelp()
   exit(1);
 }
 
-int vrg_nxtopt()
+static int vrg_nxtopt()
 {
   return (vrgargn == 0)
          || ((vrgargn < vrg_argc) 
@@ -193,7 +180,7 @@ int vrg_nxtopt()
 // Example: "-o [filename]"
 //          "myprg -fpippo"
 //
-int vrg_isopt(char *opt)
+static int vrg_isopt(char *opt)
 {
   int opt_ndx=0;
   char *arg=vrg_argv[vrgargn];
@@ -206,18 +193,19 @@ int vrg_isopt(char *opt)
   if (opt[1]==arg[1]) {
     opt_ndx = 2;
     while (opt[opt_ndx] == ' ') opt_ndx++ ;
-    if (opt[opt_ndx] == '\t') return 1;
-
-    if (arg[2] != 0)
-      vrgoptarg = arg+2;
-    else if (vrgargn+1 < vrg_argc)
-      vrgoptarg = vrg_argv[++vrgargn];
-
-    if ((vrgoptarg == vrg_emptystr) && (opt[opt_ndx] != '['))  {
-       errno = vrg_err(opt);
-       return 0;
+    if (opt[opt_ndx] != '\t') {
+      if (arg[2] != 0)
+        vrgoptarg = arg+2;
+      else if (vrgargn+1 < vrg_argc)
+        vrgoptarg = vrg_argv[++vrgargn];
+  
+      if ((vrgoptarg == vrg_emptystr) && (opt[opt_ndx] != '['))  {
+         errno = vrg_err(opt);
+         return 0;
+      }
+      vrglen = strlen(vrgoptarg);
     }
-    vrglen = strlen(vrgoptarg);
+    vrg_count++;
     return 1;
   }
   return 0;

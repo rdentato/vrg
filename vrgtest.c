@@ -6,7 +6,11 @@
 */
 
 // Define VRG_MAIN in one (and only one) of the source files that include vrg.h
-#define VRG_MAIN
+#define VRGOPTS
+
+// Define the maximum number of options (if not defined 16 is set by default)
+#define VRGMAXOPTS 8
+
 #include "vrg.h"
 
 int main(int argc, char *argv[])
@@ -28,21 +32,21 @@ int main(int argc, char *argv[])
 
      // -o takes an optional argument. You can tell it's optional because it is
      // enclosed in brackets: [...]
-     vrgopt("-o [optional]\tYou might not specify it") {
+     vrgopt("-o [optional]\tYou might not specify the argument for '-o'") {
        // The variables vrglen and vrgoptarg will help you get the option argument.
        printf("You specified the '-o' option with argument '%.*s'\n",vrglen,vrgoptarg);
      }
 
      // -m takes a mandatory argument. No brackets here, if the argument is missing 
      // an error will be printed.
-     vrgopt("-m mandatory\tYou must have it") {
+     vrgopt("-m mandatory\tYou must specify an argument for '-m'") {
       // You can specify the option as `-m PIPPO` or `-mPIPPO`
       printf("You specified the '-m' option with argument '%.*s'\n",vrglen,vrgoptarg);
      }
 
      vrgoptdefault {
       // Here you can deal with unknown options. You may generate an error or just skip it
-      fprintf(stderr,"WARNING: ignored option -%c\n",argv[vrgargn][1]);
+      fprintf(stderr,"WARNING: unknown option -%c\n",argv[vrgargn][1]);
      }
  
    }
@@ -51,8 +55,8 @@ int main(int argc, char *argv[])
    // processed in the command line.
    if (vrgargn < argc) {
      printf("You have additional parameters:\n");
-     for (int k = vrgargn; vrgargn < argc; k++) 
-       printf("  '%s'\n",argv[k]);
+     for (int k = vrgargn; k < argc; k++) 
+       printf(" %-2d '%s'\n", k, argv[k]);
    }
    
    // This function will print the list of flags (which is automatically contructed)
