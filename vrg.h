@@ -143,6 +143,8 @@ static int vrg_numopts=0;
 
 static char *vrg_emptystr = "";
 
+#define vrgerror(...) (fprintf(stderr,__VA_ARGS__),vrghelp())
+
 static int vrg_err(char *opt)
 {
   char *s = opt;
