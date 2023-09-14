@@ -26,7 +26,7 @@ The `vrg` macro is a versatile tool that facilitates the creation of variadic fu
 
 ### Description
 
-The `vrg` macro takes the name of another macro (like `vfun`) and a variable list of arguments (`__VA_ARGS__`) to transform the macro call into a function call with a suffix that corresponds to the number of arguments passed. 
+The `vrg` macro takes the base name of function (like `vfun`) and a variable list of arguments (`__VA_ARGS__`) to transform the macro call into a function call with a suffix that corresponds to the number of arguments passed. 
 
 ### Examples
 
@@ -87,9 +87,10 @@ You can also use it for defining default parameters. For example:
 ```c
 
    #define vfun(...) vrg(vfun, __VA_ARGS__)
-   #define vfun_01(a) vfun_02(a,0)   // make the second parameter optional and set 0 as default.
+   #define vfun01()  vfun_2(1,0)   // make both arguments optional and set by default a = 1, b = 0
+   #define vfun_1(a) vfun_2(a,0)   // make second argument optional and set it to 0 by default.
 
-   void vfun_02(int a, int b) {  
+   void vfun_2(int a, int b) {  
     // Implementation of vfun(a,b)
    }
 
