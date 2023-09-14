@@ -3,6 +3,10 @@
 ** 
 ** This software is distributed under the terms of the MIT license:
 **  https://opensource.org/licenses/MIT
+**
+** The technique to handle 0 arguments function has been taken from:
+** https://gustedt.wordpress.com/2010/06/08/detect-empty-macro-arguments/
+
 */
 
 /*
@@ -10,12 +14,12 @@
 
 Say you want to define a variadic function with the following prototype:
 
-    myfunc(int a [, char b [, void *c]])
+    myfunc([int a [, char b [, void *c]]])
 
-In other words, you want `b` and `c` to be optional.
+In other words, you want all arguments to be optional.
 
 Simply, define your function with another name (say `my_func()`) and specify
-how it should be called when invoked with 1, 2 or 3 paramenters as shown 
+how it should be called when invoked with 0, 1, 2 or 3 paramenters as shown 
 in the example below.
 
 Example:
@@ -25,14 +29,18 @@ Example:
     int my_func(int a, char b, void *c);
     
     #define myfunc(...)     vrg(myfunc, __VA_ARGS__)
-    #define myfunc1(a)      my_func(a,'\0',NULL)
-    #define myfunc2(a,b)    my_func(a,b,NULL)
-    #define myfunc3(a,b,c)  my_func(a,b,c)
+    #define myfunc01()       my_func(0,'\0',NULL)
+    #define myfunc_1(a)      my_func(a,'\0',NULL)
+    #define myfunc_2(a,b)    my_func(a,b,NULL)
+    #define myfunc_3(a,b,c)  my_func(a,b,c)
+
+Note that the `_1`, `_2`, etc, is appended to the name of the function.
+Having 0 argument is a special case and `01` will be appended to the function name.
 
 # Command line options
  A minimal replacement of getopt.
 
- Define `VRGOPTS` and include `vrg.h` only once, usually in the same source where `main()` is.
+ Define `VRGOPTS` before including `vrg.h` only once, usually in the same source where `main()` is.
 
   #define VRGOPTS
   #include "vrg.h"
@@ -80,12 +88,21 @@ Example:
 
 // Variadic functions
 
-#define vrg_cnt(vrg1,vrg2,vrg3,vrg4,vrg5,vrg6,vrg7,vrg8,vrgN, ...) vrgN
-#define vrg_argn(...)  vrg_cnt(__VA_ARGS__, 8, 7, 6, 5, 4, 3, 2, 1, 0)
-#define vrg_cat0(x,y)  x ## y
-#define vrg_cat(x,y)   vrg_cat0(x,y)
+#define vrg_cnt(_1,_2,_3,_4,_5,_6,_7,_8,_N, ...) _N
+#define vrg_argn(...)   vrg_cnt(__VA_ARGS__, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+#define vrg_commas(...) vrg_cnt(__VA_ARGS__, 0, 0, 0, 0, 0, 0, 0, _)
 
-#define vrg(vrg_f,...) vrg_cat(vrg_f, vrg_argn(__VA_ARGS__))(__VA_ARGS__)
+#define vrg_cat5(_0, _1, _2, _3, _4) _0 ## _1 ## _2 ## _3 ## _4
+#define vrg_empty_(_0, _1, _2, _3) vrg_commas(vrg_cat5(vrg_empty_, _0, _1, _2, _3))
+#define vrg_empty____0 ,
+#define vrg_comma(...) ,
+#define vrg_empty(...) vrg_empty_( vrg_commas(__VA_ARGS__)    , vrg_commas(vrg_comma __VA_ARGS__), \
+                                   vrg_commas(__VA_ARGS__ ( )), vrg_commas(vrg_comma __VA_ARGS__ ( )) )
+#define vrg_cat3_(x,y,z)  x ## y ## z
+#define vrg_cat3(x,y,z)   vrg_cat3_(x,y,z)
+
+#define vrg(vrg_f,...) vrg_cat3(vrg_f, vrg_empty(__VA_ARGS__) , vrg_argn(__VA_ARGS__))(__VA_ARGS__)
+#define VRG(vrg_f,...) vrg_cat3(vrg_f, vrg_empty(__VA_ARGS__) , vrg_argn(__VA_ARGS__))(__VA_ARGS__)
 
 
 // Command line options arguments
