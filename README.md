@@ -19,7 +19,7 @@ Feel free to contact me if you have any question/feedback/suggestion.
 
 Just include the `vrg.h` header in your code.
 
-To use the *command line arguments* define `VRGOPTS` before including.
+To use the *command line arguments* define `VRGMAIN` before including.
 
 ## Variadic functions
 The `vrg` macro is a versatile tool that facilitates the creation of variadic functions in C, allowing for different functions to be called depending on the number of arguments passed to the macro. It automatically adds a suffix to the function name based on the number of arguments provided, streamlining the process of defining and using variadic functions.
