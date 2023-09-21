@@ -13,7 +13,8 @@ See the vrgtest.c for a rather complete example on command line options.
 See the makefile for how to include it in your project 
 See the source code for further documentation.
 
-Feel free to contact me if you have any question/feedback/suggestion.
+Feel free to contact me if you have any question/feedback/suggestion. 
+Join the [my Discord Server](https://discord.gg/gENEmAmxE2) to join the Community.
 
 ## Usage
 
