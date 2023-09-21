@@ -9,5 +9,9 @@
 # can specify it by defining VRGMAXOPTS
 CFLAGS = -O2 -Wall # -DVRGMAXOPTS=3
 
+all: vrgtest vrgtest2
 vrgtest: vrg.h vrgtest.c
 	gcc $(CFLAGS) -o vrgtest vrgtest.c
+
+vrgtest2: vrg.h vrgtest2.c
+	gcc $(CFLAGS) -o vrgtest2 vrgtest2.c
