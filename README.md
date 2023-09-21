@@ -100,7 +100,7 @@ You can also use it for defining default parameters. For example:
 
 ```
 
-### Conclusion
+### Summmry
 
 The `vrg` macro brings significant benefits to the table when it comes to defining and using variadic functions in C. Here are two notable advantages:
 
@@ -112,118 +112,145 @@ In summary, the `vrg` macro enhances the safety and flexibility of variadic func
 
 ## Command line options
 
-The `vrg` library also offers a way to facilitate the management of command-line switches in programs written in the C language. This section serves as a programmer's manual to guide developers on how to effectively utilize the `vrgswitch`, `vrgcase`, `vrgdefault`, `vrgoption`, `vrgusage`, and `vrgversion` elements of the `vrg` library to define and manage command-line switches within C programs.
+The VRG library provides a convenient way to parse command-line arguments for C programs. It offers a high-level abstraction for argument parsing through a simple and intuitive API. This manual describes how to use the `vrgcli()`, `vrgarg()`, and `vrgusage()` functions.
 
-To use these functions, ensure that the vrg.h file is included in your project, and define `VRGMAIN` in one and only one of the source files that include `vrg.h`.
+
+### Getting Started
+
+Include the VRG header in your program and define `VRGMAIN` in one (and only one) source file that includes `vrg.h`:
 
 ```c
 #define VRGMAIN
 #include "vrg.h"
 ```
 
-### `vrgversion`
+### vrgcli()
 
-`vrgversion` is a string variable where you can assign an informative message about the program, including version, copyright information, and others. This message will be printed when `vrgusage()` is called.
+Encloses the actions to perform when flags and arguments are encountered. Takes as an argument an optional informative message on the program (e.g., version, copyright) that will be printed by `vrgusage()`.
 
 ```c
-vrgversion = "vrg test program (c) 2022 by me";
+vrgcli("vrg test program (c) 2022 by me") {
+  // ... vrgarg() blocks to handle flags and arguments
+}
+
 ```
 
-### `vrgswitch`
+### Arguments and Description Formatting
 
-`vrgswitch` is a macro that initiates a block where you define various case blocks to handle the different command-line switches. It takes two arguments: `argc` and `argv`, which represent the count of command-line arguments and an array of pointers to those arguments, respectively (the same you got in your `main()` function).
+In the VRG library, each flag or argument string is divided into two parts separated by a tab character `\t`. The first part is the flag or argument specification, and the second part is a textual description of the flag or argument.
+
+For example, in the string:
 
 ```c
-vrgswitch(argc, argv) {
-    // ...
+"-m mandatory\tDescription of the flag"
+```
+
+- The part before the tab (`-m mandatory`) is the actual flag or argument specification that the user has to input in the command line.
+  
+  - Flags that start with a dash `-` are options (e.g., `-m`).
+  
+  - If a flag or argument is mandatory, it is simply written as is (e.g., `mandatory`).
+  
+  - If a flag or argument is optional, it is enclosed in square brackets (e.g., `[optional]`).
+
+- The part after the tab (`Description of the flag`) is the text that will be displayed when the `vrgusage()` function is called to print the usage instructions.
+
+Therefore, in this example, if a user inputs an incorrect flag and `vrgusage()` is called, the output will include:
+
+```text
+-m mandatory   Description of the flag
+```
+
+This structure allows you to both describe how the flag or argument should be used and provide useful information that will be displayed in the help message.
+
+### vrgarg()
+
+Encloses the code that must be executed when a specific flag or argument is found. The `vrgarg` variable inside the block holds a pointer to the argument itself (or the flag option).
+
+```c
+vrgarg("-o [optional]\tYou may or may not specify an option for '-o'") {
+  // ... Your code here
 }
 ```
 
-### `vrgcase`
+### vrgusage()
 
-`vrgcase` allows you to define a specific switch and associate an action to be performed when the switch is specified in the command line. A switch is defined as a string divided into two parts separated by a tab (`\t`), with the first part being the switch and the second part a description. The subsequent block contains the code to be executed if that switch is specified on the command line.
+Prints the list of flags and arguments in the order they are specified within `vrgcli` and then exits with an error. You can optionally specify an error message to print before the usage using the same syntax as `printf()`.
 
 ```c
-vrgcase("h\tPrint help") {
-    printf("You specified the '-h' switch with option '%s'\n", vrgoption);
+vrgusage("ERROR: unknown flag '-%c'\n", vrgarg[1]);
+```
+
+## Variables
+
+- **vrgarg**: A `char` pointer that points to the argument value of the current flag or argument.
+- **vrgargn**: An integer variable that stores the index of the next command-line argument to be processed.
+  
+
+## Examples
+
+### Flags with No Options
+
+```c
+vrgarg("-h\tPrint help") {
+  printf("You specified the '-h' flag with option '%s'\n", vrgarg);
+  vrgusage();
 }
 ```
 
-### `vrgoption`
-
-`vrgoption` is a variable that contains the option specified with a switch. It can be used within the `vrgcase` block to perform actions based on the specified option.
+### Flags with Optional Options
 
 ```c
-printf("You specified the '-o' switch with option '%s'\n", vrgoption);
-```
-Options can be attached to the switch or be specified as the next argument. For example, the following two are fully equivalent:
-
-```bash
-  myprogram -o data.out
-
-  myprogram -odata.out
-```
-
-
-### `vrgdefault`
-
-`vrgdefault` provides a way to deal with unknown switches. Within this block, you can define what actions to take if an unknown switch is encountered.
-
-```c
-vrgdefault {
-    fprintf(stderr, "WARNING: unknown switch -%c\n", argv[vrgargn][1]);
+vrgarg("-o [optional]\tYou may or may not specify an option for '-o'") {
+  printf("You specified the '-o' flag with option '%s'\n", vrgarg);
 }
 ```
 
-### `vrgusage`
-
-`vrgusage` is a function that, when called, prints the list of defined switches (along with the message defined in `vrgversion`) and exits the program with an error. Note that the switches will appear in reverse order.
+### Flags with Mandatory Options
 
 ```c
-vrgusage();
-```
-
-### Other Variables
-
-- `vrgargn`: An integer variable that can be used to determine if there are any additional arguments to be processed in the command line. If it's equal to `argc`, no other arguments are present on the command line.
-
-### Creating a Command Line Switches
-
-When defining a switch with `vrgcase`, you need to specify whether the switch takes an option and whether it is mandatory or optional:
-
-1. No option: The switch does not take any option.
-2. Optional option: Enclose the option in brackets `[]`.
-3. Mandatory option: Specify the option without brackets.
-
-Examples:
-
-```c
-vrgcase("o [optional]\tYou may or may not specify an option for '-o'") {
-    // ...
-}
-
-vrgcase("m mandatory\tYou must specify an argument for '-m'") {
-    // ...
+vrgarg("-m mandatory\tYou must specify an argument for '-m'") {
+  printf("You specified the '-m' flag with option '%s'\n", vrgarg);
 }
 ```
 
-### Handling Additional Command Line Arguments
-
-You can also process additional command-line arguments that are not covered by the switches defined in `vrgswitch`. You can use the `vrgargn` variable to determine if there are additional arguments and process them accordingly:
+### Positional Arguments
 
 ```c
-if (vrgargn < argc) {
-    printf("You have additional arguments:\n");
-    for (int k = vrgargn; k < argc; k++) 
-        printf(" %-2d '%s'\n", k, argv[k]);
+vrgarg("inputfile\tThe name of the file to process") {
+  printf("File to be processed: `%s`\n", vrgarg);
+}
+```
+### Optional Positional Arguments
+
+```c
+vrgarg("[outputfile]\tThe name of the file to create") {
+  printf("File to be created: `%s`\n", vrgarg);
 }
 ```
 
-### Switch stop
+### Unknown Flags and Extra Arguments
 
-You can mark the end of the list of switches using `--`. In the example below, `-x` is not considered a switch:
+You can use a `vrgarg()` block with no argument to capture any other
+argument that has not been handled:
 
-```bash
-  myprogram -m 123 -- -x
+```c
+vrgarg() {
+  if (vrgarg[0] == '-') {
+    vrgusage("ERROR: unknown flag '-%c'\n", vrgarg[1]);
+  }
+  fprintf(stderr, "Additional argument: '%s'\n", vrgarg);
+}
 ```
 
+## Flexible Argument Specification
+
+One of the noteworthy features of VRG is its flexibility in handling arguments attached to flags. VRG allows you to specify arguments either directly after the flag or as a separate argument. For instance, both `-x32` and `-x 32` are considered equivalent when parsed by VRG. This gives users the flexibility to input arguments in a manner that's most intuitive for them and also simplifies the parsing logic you have to write. This feature is particularly useful for applications that require quick command-line inputs, as it allows for both compact and spaced syntax, catering to a broader range of user preferences.
+
+## Limitations: Short Options Only
+
+While VRG offers a fantastic range of features wrapped in a simplified interface, it's essential to note that, as of its current version, the library only supports short options (e.g., `-h` for help, `-f` for file). Long options like `--help` or `--file` are not available. This limitation might not be a deal-breaker for small to medium-sized projects, where short options could suffice. However, for larger, more complex applications where long, descriptive option names could enhance readability and usability, this could be a limitation worth considering. Nonetheless, the simplicity and ease-of-use that VRG offers may outweigh this constraint for many developers.
+
+## Summary
+
+With the VRG library, parsing command-line arguments in C programs becomes more straightforward and maintainable. This manual aimed to explain the key functionalities provided by this library, and we hope that it helps you in writing better C programs.

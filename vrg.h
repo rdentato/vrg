@@ -57,7 +57,7 @@ Having 0 argument is a special case and `01` will be appended to the function na
    vrgarg("-o [filename]\tEnable output (on stdout by default)") {
        // Here filename is argional
    }
-
+cur_def
    vrgargdefault {
       // cought an unrecognized parameter.
    }
@@ -75,8 +75,8 @@ Having 0 argument is a special case and `01` will be appended to the function na
 
 ***/
 
-#ifndef vrgversionSION
-#define vrgversionSION 0x0001002C // 0.1.2-RC
+#ifndef VRG_VERSION
+#define VRG_VERSION 0x0001002C // 0.1.2-RC
 
 #include <stdio.h>
 #include <stdint.h>
@@ -87,9 +87,11 @@ Having 0 argument is a special case and `01` will be appended to the function na
 
 // Variadic functions
 
-#define vrg_cnt(_1,_2,_3,_4,_5,_6,_7,_8,_N, ...) _N
-#define vrg_argn(...)   vrg_cnt(__VA_ARGS__, 8, 7, 6, 5, 4, 3, 2, 1, 0)
-#define vrg_commas(...) vrg_cnt(__VA_ARGS__, 0, 0, 0, 0, 0, 0, 0, _)
+
+
+#define vrg_cnt(_1,_2,_3,_4,_5,_6,_7,_8,_9,_N, ...) _N
+#define vrg_argn(...)   vrg_cnt(__VA_ARGS__, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+#define vrg_commas(...)  vrg_cnt(__VA_ARGS__, 0, 0, 0, 0, 0, 0, 0, 0, _)
 #define vrg_comma(...) ,
 #define vrg_empty_(_0, _1, _2, _3) vrg_commas(vrg_cat5(vrg_empty_, _0, _1, _2, _3))
 #define vrg_empty____0 ,
@@ -100,147 +102,225 @@ Having 0 argument is a special case and `01` will be appended to the function na
 #define vrg_cat3_(x,y,z)  x ## y ## z
 #define vrg_cat3(x,y,z)   vrg_cat3_(x,y,z)
 
+// There are two of them because if one of the arguments of `vrg` is defined with `vrg`, the
+// macro expansion would stop. In that case define one with `vrg` and the other with `VRG`.
+// Hopefully two will be enough.
 #define vrg(vrg_f,...) vrg_cat3(vrg_f, vrg_empty(__VA_ARGS__) , vrg_argn(__VA_ARGS__))(__VA_ARGS__)
 #define VRG(vrg_f,...) vrg_cat3(vrg_f, vrg_empty(__VA_ARGS__) , vrg_argn(__VA_ARGS__))(__VA_ARGS__)
+
+#define vrg_zcommas(...) vrg_cnt(__VA_ARGS__, __, __, __, __, __, __, __, __, 01)
+#define vrg_(vrg_f,...) vrg_cat3(vrg_f, vrg_zcommas(__VA_ARGS__) , )(__VA_ARGS__)
 
 // Command line argions arguments
 
 #ifdef VRGMAIN
 
-typedef struct vrg_arglist_s {
+//   prog  -b 23 -a pippo pluto
+//         \___/ \/ \_________/
+//          \     \  \____________ argument
+//           \     \______________ flag
+//            \___________________ flag with an option
+
+
+
+typedef struct vrg_def_s {
   char  *def;
-  struct vrg_arglist_s *next;
-} vrg_argdef_t;
+  struct vrg_def_s *next;
+  char    pos;
+  char    tab;     // up to the \t charcter
+  char    hasopt;  //  -1 optional; 0 none; 1 mandatory
+  char    found;
+} vrg_def_t;
 
-static vrg_argdef_t *vrg_arglist = NULL;
+static vrg_def_t *vrg_arglist = NULL;
 
-static int   vrgargn;
-static char *vrgoption;
+static int   vrgargn = 0;
+static char *vrgarg;
 
-static int    vrg_count;
+static int    vrg_argfound = 0;
+static int    vrg_pos;
 static int    vrg_argc;
 static char **vrg_argv=NULL;
 
+static int vrg_hasflags = 0;
+static int vrg_hasdefault = 0;
+static int vrg_hasargs = 0;
+
 static char *vrg_emptystr = "";
 
-static char *vrgversion = NULL;
+static char *vrg_help = NULL;
 
-static void vrgusage();
 
-#define vrgerror(...) (fprintf(stderr,"" __VA_ARGS__), fputc('\n',stderr), vrgusage())
+#define vrgusage(...) vrg_(vrgusage,__VA_ARGS__)
+#define vrgusage__(...) (fprintf(stderr,"" __VA_ARGS__), vrgusage01())
+static int vrgusage01();
 
-#define vrgswitch(vrg_argc_,vrg_argv_) \
-  for (vrgargn = 0, vrg_argc = vrg_argc_, vrg_argv = vrg_argv_, vrg_count = 0, errno = 0 \
-      ; vrg_next() \
-      ; vrg_count = 0, vrgargn++) 
+#define vrgcli(...) vrg(vrgcli,__VA_ARGS__)
+#define vrgcli01()  vrgcli_3(NULL,argc,argv)
+#define vrgcli_1(s) vrgcli_3(s,argc,argv)
 
-static int vrg_next()
+#define vrgcli_3(s,argc_,argv_) \
+  for (vrgargn = 0, errno = 0, vrg_argfound = 0, vrg_help = s, vrg_argc = argc_, vrg_argv = argv_, vrg_pos = 0  \
+      ; ((vrgargn < vrg_argc) || vrg_checkmandatory()) && ((vrgargn == 1) ? !(vrg_pos=0) : 1) \
+      ; vrg_argfound ? vrg_argfound = 0 : vrgargn++ ) 
+
+#define vrg_defnode() vrg_cat3(vrg_def_, __LINE__,)
+
+#define vrgarg(...) vrg(vrgarg,__VA_ARGS__)
+
+#define vrgarg01() if (vrgargn==0 || vrgargn >= vrg_argc || vrg_argfound || !(vrgarg = vrg_argv[vrgargn])) vrg_hasdefault = 1; \
+                   else
+
+#define vrgarg_1(def_) static vrg_def_t vrg_defnode() = { .def = def_, .pos = -1, .hasopt = 0 }; \
+                                 if (vrgargn == 0) vrg_setnode(&vrg_defnode());\
+                            else if (vrgargn >= vrg_argc) { vrg_checkmandatory(); break; }\
+                            else if (!vrg_checkarg(&vrg_defnode(), vrg_argv[vrgargn])) ; \
+                            else
+
+static void vrg_setnode(vrg_def_t *node)
 {
-  if (vrgargn == 0) return 1;
-  if (vrgargn >= vrg_argc) return 0;
-
-  char *cli_arg = vrg_argv[vrgargn];
-  if (cli_arg[0] == '-') {
-    if (cli_arg[1] == '-') {vrgargn++; return 0; }
-    return 1;
+  char *cur_def = node->def;
+  node->next = vrg_arglist;
+  node->found = 1;
+  vrg_arglist = node; 
+  while(isspace(cur_def[0])) cur_def++;
+  if (cur_def[0] == '-' && cur_def[1] != '\0')  { // it's a flag
+    vrg_hasflags = 1;
+    cur_def += 2;
+    while(*cur_def == ' ') cur_def++;
+    if (*cur_def == '[') node->hasopt = -1; // optional argument
+    else if (*cur_def != '\0' && *cur_def != '\t') node->hasopt = 1; // mandatory argument
   }
+  else { // it's a positional argument
+    vrg_hasargs = 1;
+    if (cur_def[0] != '[') { // and it's mandatory
+      node->hasopt = 1;
+      node->found = 0;
+    }
+    node->pos = vrg_pos++;
+  }
+}
+
+// -x [data]\tdescription -y delta
+// file 
+static int vrg_checkarg(vrg_def_t *node, char *cli_arg)
+{
+  char *cur_def = node->def; 
+
+  vrgarg = vrg_emptystr;
+  // It's a flag and the definition matches.
+  if (cur_def[0] == '-') { // checking for a flag
+
+    // The argument is a not a flag or it's not the same flag
+    if (cli_arg[0] != '-' || cli_arg[1] != cur_def[1]) return 0; 
+
+    if (node->hasopt) { // look for an option
+      if (cli_arg[2] != '\0') 
+         vrgarg = cli_arg+2;  // option is attached to the flag -x32
+      else if ((vrgargn+1 < vrg_argc) && vrg_argv[vrgargn+1][0] != '-')
+         vrgarg = vrg_argv[++vrgargn];
+  
+      if (vrgarg == vrg_emptystr && node->hasopt>0)
+        vrgusage("Missing argument for %.2s\n",cur_def);
+    }
+  }
+  else { // Checking for an agument
+
+    // but a flag has been found.
+    if (cli_arg[0] == '-') return 0;
+
+    // It's an argument but the pos doesnt match!
+    if (vrg_pos != node->pos) return 0;
+    
+    vrgarg = cli_arg;
+    node->found = 1;
+    vrg_pos++;
+  }
+
+  vrgargn++; 
+  vrg_argfound = 1;
+  return 1;
+}
+
+static int vrg_checkmandatory()
+{
+  vrg_def_t *node = vrg_arglist;
+  int errors=0;
+  char *s=NULL;
+  while (node) {
+     if (!node->found) {
+       errors++;
+       s = node->def;
+       while (*s && *s != '\t') s++;
+       fprintf(stderr,"Error: missing '%.*s' argument\n", (int)(s-node->def),node->def) ;
+     };
+     node = node->next;
+  }
+  if (errors) vrgusage();
   return 0;
 }
 
-#define vrg_argnode() vrg_cat3(vrg_def_, __LINE__,)
-
-#define vrgcase(vrg_arg_) static vrg_argdef_t vrg_argnode() = { .def = vrg_arg_ }; \
-                          if (vrgargn == 0) { \
-                            vrg_argnode().next = vrg_arglist; \
-                            vrg_arglist = & vrg_argnode() ; \
-                          } \
-                          else if (!vrg_checkarg(&vrg_argnode()) || !(++vrg_count)) ; else
-
-#define vrgdefault if (!vrgargn || vrg_count || !(++vrg_count)) ; else
-
-static void vrgusage()
+static int vrgusage01()
 {
-  // Find the basename for the program
+  vrg_def_t *node = vrg_arglist;
+  vrg_def_t *inverted = NULL;
+  vrg_def_t *tmp_node;
+  char *s=NULL;
+  int max_tab = 0;
+
+  while (node) {
+    s = node->def;
+    while (*s && *s != '\t') s++;
+    node->tab = s - node->def; 
+    if (node->tab > max_tab) max_tab = node->tab;
+
+    tmp_node = node->next;
+    node->next = inverted;
+    inverted = node;
+    node = tmp_node;
+  }
+  vrg_arglist = inverted;
+
   char *prgname = vrg_argv[0];
   while (*prgname) prgname++;
   while ((prgname > vrg_argv[0]) && (prgname[-1] !='\\') && (prgname[-1] != '/'))
     prgname--;
 
-  // Find the longest definition for pretty alignment
-  int max_def_len = 0;
-  for (vrg_argdef_t *arg = vrg_arglist; arg; arg = arg->next) {
-    char *t = arg->def;
-    while (*t && *t != '\t') t++;
-    if ((t - arg->def) > max_def_len) max_def_len = (t - arg->def);
-  }
- 
-  fprintf(stderr,"Usage: %s [OPTIONS] ...\n",prgname);
-  if (vrgversion) fprintf(stderr,"%s\n",vrgversion);
+  fflush(stdout);
+  fprintf(stderr, "USAGE:\n  %s ",prgname);
 
-  for  (vrg_argdef_t *arg = vrg_arglist; arg; arg = arg->next) {
-    // Split the definition up to the `\t`
-    char *t = arg->def;
-    while (*t && *t != '\t') t++;
+  if (vrg_hasflags) fprintf(stderr, "[OPTIONS] ");
 
-    // Print the switch letter and option
-    fprintf(stderr,"   -%.*s",(int)(t - arg->def), arg->def);
+  if (vrg_hasargs)
+    for (node = vrg_arglist; node ; node = node->next) {
+      if (node->def[0] != '-') fprintf(stderr,"%.*s ",node->tab,node->def);
+    }
 
-    // Print the description (if any)
-    while(isspace(*t)) t++;
-    if (*t) fprintf(stderr,"%*s  %s", (int)(max_def_len - (t-arg->def)+1),"",t);
+  if (vrg_hasdefault) fprintf(stderr,"...");
 
-    fputc('\n',stderr);
-  }
-  exit(1);
-}
+  fprintf(stderr,"\n");
+  if (vrg_help && *vrg_help) fprintf(stderr,"  %s\n",vrg_help);
 
-
-// x [data]\tdescription -y delta
-static int vrg_checkarg(vrg_argdef_t *arg)
-{
-  char *cli_arg = vrg_argv[vrgargn];
-  char *cur_argdef = arg->def; 
-
-  if (cli_arg[1] != cur_argdef[0]) return 0;
-
-  // check if the switch has further argument (possibly optional)
-  int has_option = 0;  // -1 optional; 0 no; 1 mandatory
-
-  cur_argdef++;
-  while (*cur_argdef == ' ') cur_argdef++;
-  if (*cur_argdef && (*cur_argdef != '\t')) {
-    if (*cur_argdef == '[') has_option = -1;
-    else has_option = 1;
-  }
-
-  // Get the switch options
-  vrgoption = vrg_emptystr;
-
-  // No option needed
-  if (has_option == 0) return 1;
-
-  // Check if options is given together with the swoitch ("-x23")
-  cli_arg +=2;
-  while (isspace(*cli_arg)) cli_arg++;
-  if (*cli_arg != '\0') {
-     vrgoption = cli_arg;
-     return 1;
-  }
-  
-  // Check if option is given as next argument ("-x 23")
-  if (vrgargn < vrg_argc -1 ) { // there is at least another argument
-    if (vrg_argv[vrgargn+1][0] != '-') { // and is not a switch!
-      vrgoption = vrg_argv[++vrgargn];
-      return 1;
+  if (vrg_hasargs) {
+    fprintf(stderr,"\nARGUMENTS:\n");
+    for (node = vrg_arglist; node ; node = node->next) {
+      if (node->def[0] != '-') {
+        fprintf(stderr,"  %.*s%*s%s\n",node->tab,node->def,max_tab - node->tab, "", node->def + node->tab);
+      }
     }
   }
 
-  if (has_option > 0) // No option found but one was due! Exit with error.
-     vrgerror("ERROR: Missing option for switch '-%c`",arg->def[0]);
+  if (vrg_hasflags) {
+    fprintf(stderr,"\nOPTIONS:\n");
+    for (node = vrg_arglist; node ; node = node->next) {
+      if (node->def[0] == '-') {
+        fprintf(stderr,"  %.*s%*s%s\n",node->tab,node->def,max_tab - node->tab, "", node->def + node->tab);
+      }
+    }    
+  }
 
-  return 1;
+  exit(1);
 }
-
 
 #endif 
 #endif
