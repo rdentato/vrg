@@ -135,6 +135,22 @@ vrgcli("vrg test program (c) 2022 by me") {
 
 ```
 
+By default, `vrgcli()` assumes that the idiomatic `argc` and `argv` variables are used to access the command line arguments. Should this not be the case, you can specify them:
+
+```c
+vrgcli("my nice program v0.0.1",counter_of_args, array_of_args) {
+   // ...
+}
+```
+If you don't want to print any informative message, you can pass NULL as first argument (or just nothing if the default `argc` and `argv` are used):
+
+```c
+vrgcli() {
+   // ...
+}
+```
+
+
 ### Arguments and Description Formatting
 
 In the VRG library, each flag or argument string is divided into two parts separated by a tab character `\t`. The first part is the flag or argument specification, and the second part is a textual description of the flag or argument.
