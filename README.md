@@ -151,7 +151,6 @@ vrgcli() {
 }
 ```
 
-
 ### Arguments and Description Formatting
 
 In the VRG library, each flag or argument string is divided into two parts separated by a tab character `\t`. The first part is the flag or argument specification, and the second part is a textual description of the flag or argument.
@@ -263,6 +262,105 @@ vrgarg() {
 ## Flexible Argument Specification
 
 One of the noteworthy features of VRG is its flexibility in handling arguments attached to flags. VRG allows you to specify arguments either directly after the flag or as a separate argument. For instance, both `-x32` and `-x 32` are considered equivalent when parsed by VRG. This gives users the flexibility to input arguments in a manner that's most intuitive for them and also simplifies the parsing logic you have to write. This feature is particularly useful for applications that require quick command-line inputs, as it allows for both compact and spaced syntax, catering to a broader range of user preferences.
+
+## Validation Functions
+
+In addition to simple command-line parsing, the VRG library also provides the capability to validate arguments through custom validation functions. This feature allows you to enforce specific constraints on the values that an argument can assume, making your CLI more robust and user-friendly.
+
+Typical uses cases are to check that an argument is an integer within a specified range, or that the specified file exists and is readable.
+
+### Defining a Validation Function
+
+A validation function is a simple C function that takes a string argument (and optionally, other parameters) and returns 1 if the string is a valid argument, or 0 otherwise. The signature of such a function should be as follows:
+
+```c
+int my_validation_function(char *arg) {
+  // Validation logic here
+}
+```
+
+### Example: Checking for an Integer
+
+Here's an example of a validation function that checks if a given string is an integer:
+
+```c
+// Check if the string is an integer
+int isint(char *arg) {
+  if (arg == NULL || *arg == '\0') return 0;
+  for(; *arg; arg++) if (*arg < '0' || '9' < *arg) return 0;
+  return 1;
+}
+```
+
+To use a validation function, you simply pass it as an additional argument when defining a command-line argument using `vrgarg()`.
+
+Here's how you would define a command-line argument that uses the `isint` validation function:
+
+```c
+vrgarg("-n slots\tThe number of allowed slots", isint) {
+  // Your code here
+}
+```
+
+With this setup, an error will be thrown if the argument specified for `-n` is not an integer, making your CLI more resilient against incorrect inputs.
+
+
+### Example: Checking for a positive Integer
+
+VRG's validation functions are designed to be versatile, supporting not only the argument value but also additional parameters. This feature allows you to make your validation functions more dynamic and adaptable to various use-cases.
+
+Let's consider an example where you want to validate that an integer argument is greater than a specific number. You can define the following validation function:
+
+```c
+// Check if the string is an integer greater than n
+int isgreaterthan(char *arg, int n) {
+  if (arg == NULL || *arg == '\0') return 0;
+  if (atoi(arg) <= n) return 0;
+  return 1;
+}
+```
+
+In this function, `n` is an additional parameter that specifies the lower limit for valid integers.
+
+To use a validation function that takes additional parameters, you would pass those parameters along with the function in your `vrgarg()` definition like so:
+
+```c
+vrgarg("-n slots\tThe number of allowed slots", isgreaterthan, 0) {
+  // Your code here
+}
+```
+
+In this example, the `isgreaterthan` validation function is passed an extra parameter `0`, meaning the function will only validate integers that are greater than zero.
+
+### Example: File Existence
+
+Another common use-case for validation in command-line interfaces is to check whether a specified file exists and is readable. This could be particularly useful for programs that read data from files. For this, we can define a validation function called `isfile`.
+
+Here is how you can define this function:
+
+```c
+// Check if the specified file exists and is readable.
+int isfile(char *arg) {
+  if (arg == NULL || *arg == '\0') return 0;
+  FILE *f = fopen(arg, "rb");
+  if (f == NULL) return 0;
+  fclose(f);
+  return 1;
+}
+```
+
+In this function, we try to open the file in read-binary mode. If the `fopen` call returns `NULL`, it means the file could not be opened, either because it does not exist or because it is not readable. Otherwise, we close the file and return 1, indicating that the file exists and is readable.
+
+You can then use this `isfile` validation function with `vrgarg` as follows:
+
+```c
+vrgarg("-f file\tSpecify the input file", isfile) {
+  // Your code here
+  // For example, you can now safely read the file knowing it exists and is readable.
+}
+```
+
+With this setup, if the user specifies a file that does not exist or is not readable, `vrgarg` will throw an error, thereby preventing any subsequent issues related to file handling in your application.
 
 ## Limitations: Short Options Only
 
