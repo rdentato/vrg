@@ -133,8 +133,8 @@ Having 0 argument is a special case and `01` will be appended to the function na
 
 #define VRG_ARG_IS_MANDATORY    0x01
 #define VRG_ARG_IS_OPTIONAL     0x02
-#define VRG_ARG_HAS_ARG      0x03
-#define VRG_ARG_FOUND          0x80
+#define VRG_ARG_IS_OPTWITHARG   0x03
+#define VRG_ARG_FOUND           0x80
 #define VRG_ARG_IS_SHORTOPT     0x10
 #define VRG_ARG_IS_LONGOPT      0x20
 #define VRG_ARG_IS_OPTION       0x30
@@ -234,14 +234,15 @@ static void vrg_set_option_def(vrg_def_t *node, char *cur_def)
       vrg_argdef_set(node,IS_SHORTOPT);
       node->fst = cur_def - node->def;
       node->lst = node->fst + 1;
+      // Move forward in case there's a long format version for this option
       while (*cur_def && *cur_def != '\t' && *cur_def != '-') cur_def++;
       if (*cur_def == '-') cur_def++;
   }
 
   if (*cur_def == '-') { // check for long
       cur_def++;
-      if (*cur_def && *cur_def != ' ' && *cur_def != '\t') {
-          vrg_argdef_set(node,IS_LONGOPT);         // Yeah found a long one
+      if (*cur_def && *cur_def != ' ' && *cur_def != '\t') { // Found a long one
+          vrg_argdef_set(node,IS_LONGOPT);         
           // compute the length
           node->fst = cur_def - node->def;
           while (*cur_def && *cur_def != ' ' && *cur_def != '\t') cur_def++;
@@ -249,6 +250,7 @@ static void vrg_set_option_def(vrg_def_t *node, char *cur_def)
       }
   }
 
+  // Check if this option has an argument
   while (*cur_def == ' ') cur_def++;
   if (*cur_def == '[') vrg_argdef_set(node,IS_OPTIONAL); // optional argument
   else if (*cur_def != '\0' && *cur_def != '\t') vrg_argdef_set(node,IS_MANDATORY); // mandatory argument
@@ -310,20 +312,24 @@ static int vrg_checkarg(vrg_def_t *node, char *cli_arg)
           else if (*cli_arg != '\0') return 0;
       }
       else {
-          if (!vrg_argdef_check(node,IS_SHORTOPT)) return 0;
-          // The node is a not a flag or it's not the same flag
-          if (cli_arg[1] != cur_def[1]) return 0;
+          if (!vrg_argdef_check(node,IS_SHORTOPT)) return 0; // The node is a not a flag ...
+          if (cli_arg[1] != cur_def[1]) return 0; // ... or it's not the same flag
           cli_arg += 2;
       }
 
-      if (vrg_argdef_check(node,HAS_ARG)) { // look for an argument to option
-          if (cli_arg[0] != '\0' || cli_arg[-1] == '=')
-              vrgarg = cli_arg;  // option argument is attached to the option itself -x32 --xrays=32
-          else if ((vrgargn+1 < vrg_argc) && vrg_argv[vrgargn+1][0] != '-')
+      // Now `cli_arg` is right after the end of the option. for example:
+      //  -x     --x-rays=
+      //    ^             ^   
+      if (vrg_argdef_check(node,IS_OPTWITHARG)) { // look for an argument to the option
+          if (cli_arg[0] != '\0' || cli_arg[-1] == '=') // option argument is attached to the option itself -x32 --x-rays=32
+              vrgarg = cli_arg;  
+          else if ((vrgargn+1 < vrg_argc) && vrg_argv[vrgargn+1][0] != '-') // take next argument (if any) but ignore flags
               vrgarg = vrg_argv[++vrgargn];
 
           if (vrgarg == vrg_emptystr && vrg_argdef_check(node,IS_MANDATORY))
               vrgerror("Missing argument for option '%.*s'\n",node->lst,cur_def);
+
+          // while (isspace(*vrgarg)) vrgarg++;
       }
   }
   else { // Checking for an agument
@@ -367,6 +373,9 @@ static int vrgusage01()
   char *s=NULL;
   int max_tab = 0;
 
+  // Invert the list so that arguments are in the same order 
+  // they were specified in `vrgcli()` and compute the space
+  // needed to align the definition part.
   while (node) {
       s = node->def;
       while (*s && *s != '\t') s++;
