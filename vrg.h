@@ -82,7 +82,6 @@ Having 0 argument is a special case and `01` will be appended to the function na
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include <errno.h>
 #include <stdlib.h>
 #include <ctype.h>
 
@@ -98,7 +97,7 @@ Having 0 argument is a special case and `01` will be appended to the function na
                                    vrg_commas(__VA_ARGS__ ( )), vrg_commas(vrg_comma __VA_ARGS__ ( )) )
 
 #define vrg_cat5(_0, _1, _2, _3, _4) _0 ## _1 ## _2 ## _3 ## _4
-#define vrg_cat3(_0, _1, _2)   vrg_cat5(_0, _1, _2, , )
+#define vrg_cat3(_0, _1, _2)         vrg_cat5(_0, _1, _2, , )
 
 // There are two of them because if one of the arguments of `vrg` is defined with `vrg`, the
 // macro expansion would stop. In that case define one with `vrg` and the other with `VRG`.
@@ -113,6 +112,7 @@ Having 0 argument is a special case and `01` will be appended to the function na
 
 #define vrg_zcommas(...) vrg_cnt(__VA_ARGS__, __, __, __, __, __, __, __, __, 01)
 #define vrg_(vrg_f,...) vrg_cat3(vrg_f, vrg_zcommas(__VA_ARGS__) , )(__VA_ARGS__)
+#define VRG_(vrg_f,...) vrg_cat3(vrg_f, vrg_zcommas(__VA_ARGS__) , )(__VA_ARGS__)
 
 // Command line argions arguments
 
@@ -131,22 +131,22 @@ Having 0 argument is a special case and `01` will be appended to the function na
 // Private version of vrg()
 #define vRG(vrg_f,...) vrg_cat3(vrg_f, vrg_empty(__VA_ARGS__) , vrg_argn(__VA_ARGS__))(__VA_ARGS__)
 
-#define VRG_ARG_MANDATORY  0x01
-#define VRG_ARG_OPTIONAL   0x02
-#define VRG_ARG_ANY        0x03
-#define VRG_ARG_FOUND      0x80
-#define VRG_ARG_ISSHORTFLG 0x10
-#define VRG_ARG_ISLONGFLG  0x20
-#define VRG_ARG_ISANYFLG   0x30
+#define VRG_ARG_ISMANDATORY  0x01
+#define VRG_ARG_ISOPTIONAL   0x02
+#define VRG_ARG_ISALLOWED    0x03
+#define VRG_ARG_FOUND        0x80
+#define VRG_ARG_ISSHORTFLG   0x10
+#define VRG_ARG_ISLONGFLG    0x20
+#define VRG_ARG_ISANYFLG     0x30
 
 typedef struct vrg_def_s {
   char  *def;
   struct vrg_def_s *next;
     signed char   pos;     //
   unsigned char   tab;     // up to the \t charcter
-  unsigned char   argf;    // See flags above
-  unsigned char   lfst;    // first char of the long flag
-  unsigned char   llst;    // lentgth of the long flag
+  unsigned char   argis;    // See flags above
+  unsigned char   fst;    // first char of the long flag
+  unsigned char   lst;    // lentgth of the long flag
 } vrg_def_t;
 
 static vrg_def_t *vrg_arglist = NULL;
@@ -181,7 +181,7 @@ static int vrgusage01();
 #define vrgcli_1(s) vrgcli_3(s,argc,argv)
 
 #define vrgcli_3(hlp_,argc_,argv_) \
-  for (vrgargn = 0, vrg_pos = 0, vrg_argfound = 0, vrg_help = hlp_, vrg_argc = argc_, vrg_argv = argv_, errno = vrg_invalid(NULL)  \
+  for (vrgargn = 0, vrg_pos = 0, vrg_argfound = vrg_invalid(NULL), vrg_help = hlp_, vrg_argc = argc_, vrg_argv = argv_  \
       ; ((vrgargn < vrg_argc) || vrg_checkmandatory()) && ((vrgargn == 1) ? !(vrg_pos=0) : 1) \
       ; vrg_argfound ? vrg_argfound = 0 : vrgargn++ ) 
 
@@ -192,7 +192,7 @@ static int vrgusage01();
 #define vrgarg01() if (vrgargn==0 || vrgargn >= vrg_argc || vrg_argfound || !(vrgarg = vrg_argv[vrgargn])) vrg_cli_has |= VRG_CLI_HAS_DEFAULT; \
                    else
 
-#define vrgarg_1(def_) static vrg_def_t vrg_defnode() = { .def = def_, .pos = -1, .argf = 0,  .tab = 0 }; \
+#define vrgarg_1(def_) static vrg_def_t vrg_defnode() = { .def = def_, .pos = -1, .argis = 0,  .tab = 0 }; \
                                  if (vrgargn == 0) vrg_setnode(&vrg_defnode());\
                             else if (vrgargn >= vrg_argc) { vrg_checkmandatory(); break; }\
                             else if (!vrg_checkarg(&vrg_defnode(), vrg_argv[vrgargn])) ; \
@@ -208,10 +208,10 @@ static inline int vrg_def_stop(char c) {return (c != '\0' && c != '\t' && c != '
 static int vrg_invalid(vrg_def_t *node)
 {
   if (node == NULL) return 0;
-  if ((vrgarg == NULL || *vrgarg == '\0') && ((node->argf & VRG_ARG_MANDATORY) == 0)) return 1;
+  if ((vrgarg == NULL || *vrgarg == '\0') && ((node->argis & VRG_ARG_ISMANDATORY) == 0)) return 1;
   char *s = node->def;
   while(*s && !isspace(*s)) s++;
-  vrgerror("Invalid value '%s' for %s '%.*s'\n", vrgarg, (node->def)[0] == '-'? "flag" : "argument", node->llst, node->def);
+  vrgerror("Invalid value '%s' for %s '%.*s'\n", vrgarg, (node->def)[0] == '-'? "option" : "argument", node->lst, node->def);
   return (0);
 }
 
@@ -219,26 +219,26 @@ static void vrg_setnode_flag(vrg_def_t *node, char *cur_def)
 {
   cur_def++;
   if (*cur_def != '-') {
-    node->argf |= VRG_ARG_ISSHORTFLG;
-    node->lfst = cur_def - node->def;
-    node->llst = node->lfst + 1;
+    node->argis |= VRG_ARG_ISSHORTFLG;
+    node->fst = cur_def - node->def;
+    node->lst = node->fst + 1;
     while (*cur_def && *cur_def != '\t' && *cur_def != '-') cur_def++;
     if (*cur_def == '-') cur_def++;
   }
   if (*cur_def == '-') { // check for long
     cur_def++;
     if (*cur_def && *cur_def != ' ' && *cur_def != '\t') {
-      node->argf |= VRG_ARG_ISLONGFLG;         // Yeah found a long one
+      node->argis |= VRG_ARG_ISLONGFLG;         // Yeah found a long one
       // compute the length
-      node->lfst = cur_def - node->def;
+      node->fst = cur_def - node->def;
       while (*cur_def && *cur_def != ' ' && *cur_def != '\t') cur_def++;
-      node->llst = cur_def - node->def;
+      node->lst = cur_def - node->def;
     }
   }
 
   while(*cur_def == ' ') cur_def++;
-  if (*cur_def == '[') node->argf |= VRG_ARG_OPTIONAL; // optional argument
-  else if (*cur_def != '\0' && *cur_def != '\t') node->argf |= VRG_ARG_MANDATORY; // mandatory argument
+  if (*cur_def == '[') node->argis |= VRG_ARG_ISOPTIONAL; // optional argument
+  else if (*cur_def != '\0' && *cur_def != '\t') node->argis |= VRG_ARG_ISMANDATORY; // mandatory argument
 }
 
 static void vrg_setnode(vrg_def_t *node)
@@ -254,10 +254,12 @@ static void vrg_setnode(vrg_def_t *node)
   else { // it's a positional argument
     vrg_cli_has |= VRG_CLI_HAS_ARGS;
     node->pos = vrg_pos++;
+    node->fst = 0;
+    for (node->lst =0; node->def[node->lst] && !isspace(node->def[node->lst]); node->lst += 1) ;
     if (cur_def[0] == '[')  // and it's optional
-      node->argf |= VRG_ARG_OPTIONAL;
+      node->argis |= VRG_ARG_ISOPTIONAL;
     else 
-      node->argf |= VRG_ARG_MANDATORY;
+      node->argis |= VRG_ARG_ISMANDATORY;
   }
 }
 
@@ -280,8 +282,8 @@ static int vrg_checkarg(vrg_def_t *node, char *cli_arg)
       }
       cli_arg += 2;
       int n;
-      for (n = node->lfst; *cli_arg && (n < node->llst) && (node->def[n] == *cli_arg); n++) cli_arg++;
-      if (n < node->llst) return 0;
+      for (n = node->fst; *cli_arg && (n < node->lst) && (node->def[n] == *cli_arg); n++) cli_arg++;
+      if (n < node->lst) return 0;
       if (*cli_arg == '=') cli_arg++;
       else if (*cli_arg != '\0') return 0;
     } 
@@ -291,13 +293,13 @@ static int vrg_checkarg(vrg_def_t *node, char *cli_arg)
       cli_arg += 2;
     }
 
-    if (node->argf & VRG_ARG_ANY) { // look for an argument to flag
+    if (node->argis & VRG_ARG_ISALLOWED) { // look for an argument to flag
       if (*cli_arg != '\0' || cli_arg[-1] == '=') 
           vrgarg = cli_arg;  // option is attached to the flag -x32
       else if ((vrgargn+1 < vrg_argc) && vrg_argv[vrgargn+1][0] != '-')
           vrgarg = vrg_argv[++vrgargn];
     
-      if (vrgarg == vrg_emptystr && (node->argf & VRG_ARG_MANDATORY))
+      if (vrgarg == vrg_emptystr && (node->argis & VRG_ARG_ISMANDATORY))
         vrgerror("Missing argument for %.2s\n",cur_def);
     }
   }
@@ -310,7 +312,7 @@ static int vrg_checkarg(vrg_def_t *node, char *cli_arg)
     if (vrg_pos != node->pos) return 0;
     
     vrgarg = cli_arg;
-    node->argf |= VRG_ARG_FOUND;
+    node->argis |= VRG_ARG_FOUND;
     vrg_pos++;
   }
 
@@ -325,7 +327,7 @@ static int vrg_checkmandatory()
   int errors=0;
   char *s=NULL;
   while (node) {
-     if ((node->pos >= 0) && (node->argf & VRG_ARG_MANDATORY) && !(node->argf & VRG_ARG_FOUND)) {
+     if ((node->pos >= 0) && (node->argis & VRG_ARG_ISMANDATORY) && !(node->argis & VRG_ARG_FOUND)) {
        errors++;
        s = node->def;
        while (*s && *s != '\t') s++;
