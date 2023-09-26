@@ -373,6 +373,16 @@ static int vrgusage01()
   char *s=NULL;
   int max_tab = 0;
 
+  fflush(stdout);
+
+  // Just print the help message passed to vrgcli()
+  if (vrg_help && *vrg_help == '#') {
+      while (*vrg_help && *vrg_help != '\n') vrg_help++;
+      if (*vrg_help) vrg_help++;
+      fprintf(stderr,"%s\n",vrg_help);
+      exit(1);
+  }
+
   // Invert the list so that arguments are in the same order 
   // they were specified in `vrgcli()` and compute the space
   // needed to align the definition part.
@@ -393,15 +403,6 @@ static int vrgusage01()
   while (*prgname) prgname++;
   while ((prgname > vrg_argv[0]) && (prgname[-1] !='\\') && (prgname[-1] != '/'))
       prgname--;
-
-  fflush(stdout);
-
-  if (vrg_help && *vrg_help == '#') {
-      while (*vrg_help && *vrg_help != '\n') vrg_help++;
-      if (*vrg_help) vrg_help++;
-      fprintf(stderr,"%s\n",vrg_help);
-      exit(1);
-  }
 
   fprintf(stderr, "USAGE:\n  %s ",prgname);
 
