@@ -57,7 +57,7 @@ int main (int argc, char *argv[])
       printf("Rays: '%s'\n",vrgarg);
     }
 
-    vrgarg("-t, --trace [trace]\tTrace (boolean)", isbool) {
+    vrgarg("-t|--trace [trace]\tTrace (boolean)", isbool) {
       printf("Trace '%s'\n",vrgarg);
     }
 

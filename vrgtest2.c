@@ -2,6 +2,7 @@
 #define VRGMAIN
 #include "vrg.h"
 
+// CHeck if the string is an integer
 int isint(char *arg)
 {
   if (arg == NULL || *arg == '\0') return 0;
@@ -9,6 +10,7 @@ int isint(char *arg)
   return 1;
 }
 
+// Check if the string is an integer greater than n
 int isgreaterthan(char *arg, int n)
 {
   if (arg == NULL || *arg == '\0') return 0;
@@ -16,6 +18,9 @@ int isgreaterthan(char *arg, int n)
   return 1;
 }
 
+// Check if is a boolean option any string starting with ('1', 'Y', 'y', 'T', 't') 
+// is considered true, any string starting with ('0', 'N', 'n', 'F', 'f') is 
+// considered false.
 int isbool(char *arg) 
 {
   if (arg == NULL || *arg == '\0') return 0;
@@ -24,6 +29,7 @@ int isbool(char *arg)
   return 0;
 }
 
+// check if the specified file exists and is readable.
 int isfile(char *arg) 
 {
   if (arg == NULL || *arg == '\0') return 0;
@@ -32,7 +38,7 @@ int isfile(char *arg)
   fclose(f);
   return 1;
 }
-
+char *usage_en="# Usage\n";
 
 int main (int argc, char *argv[])
 {
@@ -55,8 +61,12 @@ int main (int argc, char *argv[])
       printf("Trace '%s'\n",vrgarg);
     }
 
+    vrgarg("-p") {
+      printf("practice '%s'\n",vrgarg);
+    }
+
     vrgarg("-r\tRetrace") {
-      printf("r '%s'\n",vrgarg);
+      printf("retrace '%s'\n",vrgarg);
     }
 
     vrgarg("[outfile]\tOutput file") {
@@ -64,7 +74,7 @@ int main (int argc, char *argv[])
     }
 
     vrgarg() {
-      if (vrgarg[0] == '-') vrgusage("Error: Unknown option '-%c'\n",vrgarg[1]);
+      if (vrgarg[0] == '-') vrgerror("Unknown option '-%c'\n",vrgarg[1]);
       else printf("Other argument %s\n",vrgarg);
     }
 

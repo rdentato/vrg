@@ -118,6 +118,42 @@ Having 0 argument is a special case and `01` will be appended to the function na
 
 #ifdef VRGMAIN
 
+#ifndef VRG_STR_USAGE
+#define VRG_STR_USAGE        "USAGE"
+#endif
+
+#ifndef VRG_STR_ERROR       
+#define VRG_STR_ERROR        "ERROR"
+#endif
+
+#ifndef VRG_STR_OPTIONS
+#define VRG_STR_OPTIONS      "OPTION"
+#endif
+
+#ifndef VRG_STR_INVALID     
+#define VRG_STR_INVALID      "Invalid value '%V' for %T '%N'"
+#endif
+
+#ifndef VRG_STR_INV_ARGUMENT
+#define VRG_STR_INV_ARGUMENT "argument"
+#endif
+
+#ifndef VRG_STR_INV_OPTION  
+#define VRG_STR_INV_OPTION   "option"
+#endif
+
+#ifndef VRG_STR_NO_ARGOPT  
+#define VRG_STR_NO_ARGOPT    "Missing argument for option '%.*s'"
+#endif
+
+#ifndef VRG_STR_NO_ARGUMENT  
+#define VRG_STR_NO_ARGUMENT  "Missing argument '%.*s'"
+#endif
+
+#ifndef VRG_STR_ARGUMENTS
+#define VRG_STR_ARGUMENTS    "ARGUMENTS"
+#endif
+
 //   prog  -b 23 -a  pippo pluto
 //         ╰─┬─╯ ╰┬╯╰────┬─────╯
 //           │    │      ╰────────── arguments
@@ -183,7 +219,7 @@ static int vrg_cli_has = 0;
 static char *vrg_emptystr  = "";
 static char *vrg_help      = NULL;
 
-#define vrgerror(...) do { fflush(stdout); fprintf(stderr,"ERROR: " __VA_ARGS__); exit(1); } while(0)
+#define vrgerror(...) do { fflush(stdout); fprintf(stderr, VRG_STR_ERROR ": " __VA_ARGS__); exit(1); } while(0)
 
 #define vrgusage(...) vrg_(vrgusage,__VA_ARGS__)
 #define vrgusage__(...) (fflush(stdout), fprintf(stderr,"" __VA_ARGS__), vrgusage01())
@@ -217,14 +253,28 @@ static int vrgusage01();
 #define vrgarg_4(def_, chk_, a_, b_)     vrgarg_1(def_) if (!(chk_(vrgarg, a_, b_) || vrg_invalid(&vrg_argdef))); else
 #define vrgarg_5(def_, chk_, a_, b_, c_) vrgarg_1(def_) if (!(chk_(vrgarg, a_, b_, c_) || vrg_invalid(&vrg_argdef))); else
 
+
 static int vrg_invalid(vrg_def_t *node)
 {
   if (node == NULL) return 0;
   if ((vrgarg == NULL || *vrgarg == '\0') && (vrg_argdef_check(node,IS_MANDATORY) == 0)) return 1;
-  char *s = node->def;
-  while(*s && !isspace(*s)) s++;
-  vrgerror("Invalid value '%s' for %s '%.*s'\n", vrgarg, (node->def)[0] == '-'? "option" : "argument", node->lst, node->def);
-  return (0);
+
+  fputs(VRG_STR_ERROR ": ", stderr);
+  for (char *m = VRG_STR_INVALID; *m; m++) {
+      if (m[0] == '%' && m[1]) {
+          m++;
+          switch (*m) {
+              case 'V' : fprintf(stderr,"%s",vrgarg); break;
+              case 'T' : fprintf(stderr,"%s",node->def[0] == '-'? VRG_STR_INV_OPTION : VRG_STR_INV_ARGUMENT); break;
+              case 'N' : fprintf(stderr,"%.*s",node->lst, node->def); break;
+              case '%' : fputc('%',stderr); break;
+              default  : fprintf(stderr,"%%%c",*m);
+          }
+      } 
+      else fputc(*m,stderr);
+  }
+  fputc('\n',stderr);
+  exit(1);
 }
 
 static void vrg_set_option_def(vrg_def_t *node, char *cur_def)
@@ -327,7 +377,7 @@ static int vrg_checkarg(vrg_def_t *node, char *cli_arg)
               vrgarg = vrg_argv[++vrgargn];
 
           if (vrgarg == vrg_emptystr && vrg_argdef_check(node,IS_MANDATORY))
-              vrgerror("Missing argument for option '%.*s'\n",node->lst,cur_def);
+              vrgerror(VRG_STR_NO_ARGOPT "\n",node->lst,cur_def);
 
           // while (isspace(*vrgarg)) vrgarg++;
       }
@@ -357,7 +407,7 @@ static int vrg_check_mandatory()
   while (node) {
       if (vrg_argdef_check(node,IS_POSITIONAL) && vrg_argdef_check(node,IS_MANDATORY) && !vrg_argdef_check(node,FOUND)) {
           errors++;
-          fprintf(stderr,"ERROR: Missing argument '%.*s'\n", node->lst,node->def);
+          fprintf(stderr,VRG_STR_ERROR ": " VRG_STR_NO_ARGUMENT "\n", node->lst,node->def);
       }
       node = node->next;
   }
@@ -404,9 +454,9 @@ static int vrgusage01()
   while ((prgname > vrg_argv[0]) && (prgname[-1] !='\\') && (prgname[-1] != '/'))
       prgname--;
 
-  fprintf(stderr, "USAGE:\n  %s ",prgname);
+  fprintf(stderr, VRG_STR_USAGE ":\n  %s ",prgname);
 
-  if (vrg_cli_check(HAS_OPTIONS)) fprintf(stderr, "[OPTIONS] ");
+  if (vrg_cli_check(HAS_OPTIONS)) fprintf(stderr, "[" VRG_STR_OPTIONS "] ");
 
   if (vrg_cli_check(HAS_ARGS)) {
       for (node = vrg_arglist; node ; node = node->next) {
@@ -421,7 +471,7 @@ static int vrgusage01()
   if (vrg_help && *vrg_help) fprintf(stderr,"  %s\n",vrg_help);
 
   if (vrg_cli_check(HAS_ARGS)) {
-      fprintf(stderr,"\nARGUMENTS:\n");
+      fprintf(stderr,"\n" VRG_STR_ARGUMENTS ":\n");
       for (node = vrg_arglist; node ; node = node->next) {
           if (node->def[0] != '-') {
               fprintf(stderr,"  %.*s%*s%s\n",node->tab,node->def,max_tab - node->tab, "", node->def + node->tab);
@@ -430,7 +480,7 @@ static int vrgusage01()
   }
 
   if (vrg_cli_check(HAS_OPTIONS)) {
-    fprintf(stderr,"\nOPTIONS:\n");
+    fprintf(stderr,"\n" VRG_STR_OPTIONS ":\n");
     for (node = vrg_arglist; node ; node = node->next) {
         if (node->def[0] == '-') {
             fprintf(stderr,"  %.*s%*s%s\n",node->tab,node->def,max_tab - node->tab, "", node->def + node->tab);
