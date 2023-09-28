@@ -1,5 +1,5 @@
 
-#define VRGMAIN
+#define VRGCLI
 #include "vrg.h"
 
 // CHeck if the string is an integer

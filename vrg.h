@@ -41,7 +41,7 @@ Having 0 argument is a special case and `01` will be appended to the function na
 
  Define `VRGARGS` before including `vrg.h` only once, usually in the same source where `main()` is.
 
-  #define VRGMAIN
+  #define VRGCLI
   #include "vrg.h"
 
 ... In the code:
@@ -116,7 +116,7 @@ Having 0 argument is a special case and `01` will be appended to the function na
 
 // Command line argions arguments
 
-#ifdef VRGMAIN
+#ifdef VRGCLI
 
 #ifndef VRG_STR_USAGE
 #define VRG_STR_USAGE        "USAGE"

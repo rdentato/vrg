@@ -1,5 +1,5 @@
 
-#define VRGMAIN
+#define VRGCLI
 
 // re-define the internal messages for Japanese
 // WARNING THIS IS ALL MACHINE-TL I do not claim to know Japanese!

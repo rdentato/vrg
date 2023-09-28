@@ -5,8 +5,8 @@
 **  https://opensource.org/licenses/MIT
 */
 
-// Define VRGMAIN in one (and only one) of the source files that include vrg.h
-#define VRGMAIN
+// Define VRGCLI in one (and only one) of the source files that include vrg.h
+#define VRGCLI
 
 #include "vrg.h"
 
