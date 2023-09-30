@@ -230,7 +230,7 @@ static int vrgusage01();
 #define vrgcli_1(s) vrgcli_3(s,argc,argv)
 
 #define vrgcli_3(hlp_, argc_, argv_) \
-  for (vrgargn = 0, vrg_pos = 0, vrg_argfound = vrg_invalid(NULL), vrg_help = hlp_, vrg_argc = argc_, vrg_argv = argv_  \
+  for (vrgargn = 0, vrg_pos = 0, vrg_argfound = vrg_invalid(NULL), vrg_help = hlp_, vrg_argc = argc_, vrg_argv = argv_, vrgarg=vrg_emptystr  \
       ; ((vrgargn < vrg_argc) || vrg_check_mandatory()) && ((vrgargn == 1) ? !(vrg_pos=0) : 1) \
       ; vrg_argfound ? vrg_argfound = 0 : vrgargn++ )
 
