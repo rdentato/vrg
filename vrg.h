@@ -223,7 +223,8 @@ static char *vrg_help      = NULL;
 
 #define vrgusage(...) vrg_(vrgusage,__VA_ARGS__)
 #define vrgusage__(...) (fflush(stdout), fprintf(stderr,"" __VA_ARGS__), vrgusage01())
-static int vrgusage01();
+
+// static int vrgusage01();
 
 #define vrgcli(...) vRG(vrgcli,__VA_ARGS__)
 #define vrgcli01()  vrgcli_3(NULL,argc,argv)
@@ -415,7 +416,9 @@ static int vrg_check_mandatory()
   return 0;
 }
 
-static int vrgusage01()
+#define vrgusage01() exit(vrghelp())
+
+static int vrghelp()
 {
   vrg_def_t *node = vrg_arglist;
   vrg_def_t *inverted = NULL;
@@ -488,7 +491,7 @@ static int vrgusage01()
     }
   }
 
-  exit(1);
+  return 1;
 }
 
 #endif
