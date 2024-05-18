@@ -36,7 +36,7 @@ Example:
 Note that the `_1`, `_2`, etc, is appended to the name of the function.
 Having 0 argument is a special case and `01` will be appended to the function name.
 
-# Command line argions
+# Command line options
  A minimal replacement of getarg.
 
  Define `VRGARGS` before including `vrg.h` only once, usually in the same source where `main()` is.
@@ -114,7 +114,7 @@ Having 0 argument is a special case and `01` will be appended to the function na
 #define vrg_(vrg_f,...) vrg_cat3(vrg_f, vrg_zcommas(__VA_ARGS__) , )(__VA_ARGS__)
 #define VRG_(vrg_f,...) vrg_cat3(vrg_f, vrg_zcommas(__VA_ARGS__) , )(__VA_ARGS__)
 
-// Command line argions arguments
+// Command line options arguments
 
 #ifdef VRGCLI
 
@@ -483,7 +483,7 @@ static int vrghelp()
   }
 
   if (vrg_cli_check(HAS_OPTIONS)) {
-    fprintf(stderr,"\n" VRG_STR_OPTIONS ":\n");
+    fprintf(stderr,"\n%s:\n", VRG_STR_OPTIONS);
     for (node = vrg_arglist; node ; node = node->next) {
         if (node->def[0] == '-') {
             fprintf(stderr,"  %.*s%*s%s\n",node->tab,node->def,max_tab - node->tab, "", node->def + node->tab);

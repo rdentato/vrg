@@ -28,7 +28,7 @@ int isint(char *arg)
 int isgreaterthan(char *arg, int n)
 {
   if (arg == NULL || *arg == '\0') return 0;
-  if (atoi(arg)<= n) return 0;
+  if (strtol(arg,NULL,10)<= n) return 0;
   return 1;
 }
 
