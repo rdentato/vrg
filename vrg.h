@@ -459,7 +459,7 @@ static int vrghelp()
 
   fprintf(stderr, VRG_STR_USAGE ":\n  %s ",prgname);
 
-  if (vrg_cli_check(HAS_OPTIONS)) fprintf(stderr, "[" VRG_STR_OPTIONS "] ");
+  if (vrg_cli_check(HAS_OPTIONS)) fprintf(stderr, "[%s] ",VRG_STR_OPTIONS);
 
   if (vrg_cli_check(HAS_ARGS)) {
       for (node = vrg_arglist; node ; node = node->next) {
@@ -474,7 +474,7 @@ static int vrghelp()
   if (vrg_help && *vrg_help) fprintf(stderr,"  %s\n",vrg_help);
 
   if (vrg_cli_check(HAS_ARGS)) {
-      fprintf(stderr,"\n" VRG_STR_ARGUMENTS ":\n");
+      fprintf(stderr,"\n%s:\n",VRG_STR_ARGUMENTS);
       for (node = vrg_arglist; node ; node = node->next) {
           if (node->def[0] != '-') {
               fprintf(stderr,"  %.*s%*s%s\n",node->tab,node->def,max_tab - node->tab, "", node->def + node->tab);
