@@ -457,7 +457,7 @@ static int vrghelp()
   while ((prgname > vrg_argv[0]) && (prgname[-1] !='\\') && (prgname[-1] != '/'))
       prgname--;
 
-  fprintf(stderr, VRG_STR_USAGE ":\n  %s ",prgname);
+  fprintf(stderr, "%s:\n  %s ",VRG_STR_USAGE, prgname);
 
   if (vrg_cli_check(HAS_OPTIONS)) fprintf(stderr, "[%s] ",VRG_STR_OPTIONS);
 
