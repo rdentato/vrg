@@ -25,3 +25,7 @@ vrgtest4: vrg.h vrgtest4.c
 
 vrgtest5: vrg.h vrgtest5.c
 	gcc $(CFLAGS) -o vrgtest5 vrgtest5.c
+
+clean:
+	rm -f vrgtest vrgtest2 vrgtest3 vrgtest4 vrgtest5
+
