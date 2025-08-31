@@ -2,7 +2,6 @@
 //.  SPDX-License-Identifier: MIT
 #ifndef VRG_VERSION
 #define VRG_VERSION 0x0010000B // 0.10.0-beta
-#line 6 "vrg.h"
 
 //    oooooo     oooo ooooooooo.     .oooooo.    
 //     `888.     .8'  `888   `Y88.  d8P'  `Y8b   

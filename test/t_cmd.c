@@ -14,7 +14,9 @@ int prgcli(int argc, char *argv[])
       cli_trace("add %s (%d)", cliarg, clindx);
     }
 
-    cliopt("<list> [type]\t\tList items of the specified type") {
+    cliopt("<list> [type]\t\tList items of the specified type.\n"
+           "\t\t\tTypes: all, int, none"
+          ) {
       cli_trace("list %s (%d)", cliarg, clindx);
     }
 
@@ -26,7 +28,7 @@ int prgcli(int argc, char *argv[])
       cli_trace("-v %s (%d)", cliarg, clindx);
     }
 
-    cliopt("-x, --xray\t\tVerbose") {
+    cliopt("-x, --xrays\t\t\tUse x-rays") {
       cli_trace("-x %s (%d)", cliarg, clindx);
     }
 

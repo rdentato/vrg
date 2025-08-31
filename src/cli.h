@@ -19,7 +19,6 @@
 #include <string.h>
 
 #include "vrg.h"
-#line 23 "../src/cli.h"
 
 #ifndef CLI_STR_ERROR_MSG
 #define CLI_STR_ERROR_MSG "Missing or invalid value for"
@@ -59,18 +58,15 @@
 #define CLI_OPT_ARG_ERROR  0x02   // Error: missing argument
 #define CLI_OPT_FOUND      0x01   // this as been already found
 
-typedef unsigned char cli_u8;
-typedef   signed char cli_i8;
-
 typedef struct cli_option_s {
   struct  cli_option_s *next;
-    char *def;
-    char  short_minus;    // This is a trick so that a pointer to
-    char  optname_short;  // `short_minus` is also a pointer to the
-    char  short_nul;      // string "-x" (where `x` is `optname_short`)
-  cli_u8  flags;
-  cli_u8  optname_offset; 
-  cli_u8  optname_len;
+           char *def;
+           char  short_minus;    // This is a trick so that a pointer to
+           char  optname_short;  // `short_minus` is also a pointer to the
+           char  short_nul;      // string "-x" (where `x` is `optname_short`)
+  unsigned char  flags;
+  unsigned char  optname_offset; 
+  unsigned char  optname_len;
 } cli_option_t;
 
 #define cli_short_offset(opt_)  ((char *)&(opt_->short_minus))
@@ -120,21 +116,6 @@ typedef char * (*cli_chk_t)(char *);
 
 #define cli_error_arg_2(s,a)    "ERROR: %s '%s'%s\n",s,a,(cliisdefault()?" (default)":"")
 #define cli_error_arg_3(s,a,n)  "ERROR: %s '%.*s'%s\n",s,n,a,(cliisdefault()?" (default)":"")
-
-// cliopt arguments grammar
-//
-// opt ::= (minus_flags | command | positional) SPC defaults? SPC help;
-// minus_flags ::= '-' (short_flag? (SPC long_flag)?)
-// short_flag  ::= [A-Za-z] (SPC argument)?
-// long_flag   ::= '-' name (SPC argument)?
-// command     ::= '\'' cmd_string '\'' argument?
-// positional  ::= argument
-// defaults    ::= '(' (env | def_str ) ')'
-// help        ::= '\t'+ help_str;
-// argument    ::= '[' argname ']' | argname
-// argname     ::= name
-// name        ::= [A-Za-z][0-9A-Za-z-]+
-
 
 static inline int cli_is_endchr(char c) {
   return c == '\0' || c == '\t' || c == '(' || c == ')';
@@ -293,6 +274,26 @@ static char *cli_remove_slash(char *s)
   return e;
 }
 
+static int cli_print_cmd(char *cmd)
+{
+  char *s = cmd;
+  
+  fputs("  ",stderr);
+  for (s = cmd; *s && *s != '\'' && *s != '<'; s++) 
+    fputc(*s,stderr);
+  
+  if (!*s) return 0;
+
+  for (s++; *s && *s != '\'' && *s != '>'; s++) 
+    fputc(*s,stderr);
+  
+  if (!*s) return 0;
+
+  fprintf(stderr,"%s\n",s+1);
+  return 1;
+}      
+
+
 #define CLIEXIT 1
 #define cliusage(...)   cli_usage(__VA_ARGS__+0)
 
@@ -316,7 +317,7 @@ int cli_usage(int xt) {
   if (cli_num_commands > 0) fprintf(stderr,"\n" CLI_STR_COMMANDS ":\n");
   for (opt = cli_head; opt != NULL;opt = opt->next) 
     if (opt->flags & CLI_OPT_COMMAND)
-      fprintf(stderr,"  %s\n",opt->def);
+      cli_print_cmd(opt->def);
 
   if (cli_num_options > 0) fprintf(stderr,"\n" CLI_STR_OPTIONS ":\n");
   for (opt = cli_head; opt != NULL;opt = opt->next)
@@ -497,6 +498,6 @@ static int cli_double_dash()
          if (cli_k == 2) {clindx++; goto cli_loop;} \
          else
 
-#define cliexit if (!(cli_opt_found = -1)); else goto cli_last
+#define cliexit() if (!(cli_opt_found = -1)); else goto cli_last
 
 #endif // CLI_VERSION

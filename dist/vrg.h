@@ -2,7 +2,6 @@
 //.  SPDX-License-Identifier: MIT
 #ifndef VRG_VERSION
 #define VRG_VERSION 0x0010000B // 0.10.0-beta
-#line 6 "vrg.h"
 #define VRG_jn(x,y)    VRG_exp(x ## y)
 #define VRG_join(x,y)  VRG_jn(x, y)
 #define VRG_exp(...) __VA_ARGS__

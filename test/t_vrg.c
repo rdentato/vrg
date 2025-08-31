@@ -87,12 +87,12 @@ _Static_assert(VRG_nargs(1,2,3,4,5,6,7,8,9)         == 9, "VRG_nargs: 9");
 #define X_ 0
 #define X1 1
 
-_Static_assert(VRG_cat(X,VRG_ncommas()                 )         == 0, "VRG_ncommas: 0");
-_Static_assert(VRG_cat(X,VRG_ncommas(a)                )         == 0, "VRG_ncommas: 0");
-_Static_assert(VRG_cat(X,VRG_ncommas(a,b)              )         == 1, "VRG_ncommas: 1");
-_Static_assert(VRG_cat(X,VRG_ncommas((int)x)           )         == 0, "VRG_ncommas: 0 cast");
-_Static_assert(VRG_cat(X,VRG_ncommas((x,y))            )         == 0, "VRG_ncommas: 0 parenthesized comma");
-_Static_assert(VRG_cat(X,VRG_ncommas(1,2,3,4,5,6,7,8,9))         == 0, "VRG_ncommas: 0");
+_Static_assert(VRG_join(X,VRG_ncommas()                 )         == 0, "VRG_ncommas: 0");
+_Static_assert(VRG_join(X,VRG_ncommas(a)                )         == 0, "VRG_ncommas: 0");
+_Static_assert(VRG_join(X,VRG_ncommas(a,b)              )         == 1, "VRG_ncommas: 1");
+_Static_assert(VRG_join(X,VRG_ncommas((int)x)           )         == 0, "VRG_ncommas: 0 cast");
+_Static_assert(VRG_join(X,VRG_ncommas((x,y))            )         == 0, "VRG_ncommas: 0 parenthesized comma");
+_Static_assert(VRG_join(X,VRG_ncommas(1,2,3,4,5,6,7,8,9))         == 0, "VRG_ncommas: 0");
 
 /* ======================= 6) Nested vrg-in-vrg tests ======================= */
 /* OUTER dispatcher (like T) */
