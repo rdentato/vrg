@@ -10,3 +10,4 @@ This repo is home of two single header libraries
   - `vrg.h` - for defining functions with a variable number of argument in a simpler way than `stdarg.h`
   - `cli.h` - for defining Command Line Interfaces (with commands and options)
 
+To incorporate them in your project, use the headers in the `dist/` directory.
