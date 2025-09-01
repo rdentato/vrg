@@ -64,7 +64,8 @@ static char *is_uint(char *s) {
 /* ---- Example CLI for `ls` ----------------------------------------------- */
 
 int main(int argc, char **argv) {
-  clioptions("ls - list directory contents", argc, argv) {
+  cliprogname = "myls"; // You can specify your own program name
+  clioptions("myls - list directory contents", argc, argv) {
     /* Help */
     cliopt("-h, --help\t\tShow this help") { cliusage(CLIEXIT); }
 

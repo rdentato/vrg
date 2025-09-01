@@ -285,9 +285,12 @@ static int cli_opt_define(char *def, cli_option_t *opt, cli_chk_t cli_chk_fn) {
 
 static char *cli_remove_slash(char *s)
 {
-  char *e = s; while(*e) e++;
-  while (e>s && e[-1] != '/' && e[-1] != '\\') e--;
-  return e;
+  char *e = s; 
+  while(*e) {
+    if (*e == '/' || *e == '\\') s = e+1;
+    e += 1;
+  }
+  return s;
 }
 
 static int cli_print_cmd(char *cmd)
