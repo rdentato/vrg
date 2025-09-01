@@ -2,6 +2,7 @@
 
 [![Version](https://img.shields.io/badge/version-0.11%20beta-blue.svg)](https://repo.dentato.com/vrg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/d19cf7a797b44b43b5e611016bd7c83e)](https://app.codacy.com/gh/rdentato/vrg/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
 Dealing with variadic arguments
 
