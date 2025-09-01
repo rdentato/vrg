@@ -393,6 +393,7 @@ int main(int argc, char **argv) {
   * `clioptions(desc, [argc, argv]) { ... }`
   * `cliopt("spec\tHelp" [, validator]) { ... }`
   * `cliopt() { ... }`  // default/fallback; **must be last**
+
 * **Runtime**
 
   * `char *cliarg;`          // current value (or NULL for missing optional)
@@ -401,7 +402,10 @@ int main(int argc, char **argv) {
   * `void cliusage(int mode);`      // prints usage; `CLIEXIT` to exit
   * `void cliexit(void);`           // stop parsing immediately
   * `void clierror(const char *msg, const char *arg);` // print error & exit
+  * `void cliwarning(const char *msg, const char *arg);` // print error NO exit
+  * `char *cliprogname;`  // Holds the name of the executable (argv[0] if NULL)
   * `#define CLIEXIT ...`            // pass to cliusage() to also exit
+
 * **Spec features**
 
   * Short/long: `-v`, `--verbose`, `-v, --verbose`
