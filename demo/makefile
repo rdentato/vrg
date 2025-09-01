@@ -9,7 +9,7 @@ _EXE=
 STATIC=
 endif
 
-DEBUG=-DDEBUG
+DEBUG=-DNDEBUG
 
 SRC=../src
 DIST=../dist

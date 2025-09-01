@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
 
     cliopt("-v, --verbose\t\t\tIncrease verbosity") { verbose++; }
 
-    cliopt("-x, --xrays n\t\t\tNumber of rays", is_positive) { xrays = atoi(cliarg); }
+    cliopt("-x, --xrays n ($XRAYS,1)\tNumber of rays", is_positive) { xrays = atoi(cliarg); }
 
     cliopt("-T, --temperature temp (42)\tSet temperature (default 42)") {
       int t = atoi(cliarg);
