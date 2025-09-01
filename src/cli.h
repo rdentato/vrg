@@ -221,20 +221,21 @@ static int cli_parse_default(cli_option_t *opt, char **cur, cli_chk_t cli_chk_fn
     }
   }
 
+  if (cliarg == NULL) cliarg = cli_emptystr;
+ 
   char *arg = cli_short_offset(opt); 
   int   len = cli_short_len(opt);
   if (opt->optname_len > 0) {
     arg = opt->def + opt->optname_offset;
     len = opt->optname_len;
   } 
-  
-  char *err_msg = clierrormsg;
 
-  if (cliarg == NULL || (err_msg = cli_chk_fn(cliarg))) {
+  char *err_msg = cli_chk_fn(cliarg);
+  if (err_msg) {
     clierror(err_msg,arg,len);
     opt->flags |= CLI_OPT_ARG_ERROR;
   }
-  if (cliarg == NULL) cliarg = cli_emptystr;
+
   *cur = d;
   return 1;
 }

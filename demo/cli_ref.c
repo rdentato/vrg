@@ -15,7 +15,11 @@ int main(int argc, char **argv) {
   clioptions("demo tool", argc, argv) {
     cliopt("-h\t\t\t\tShow help") { cliusage(CLIEXIT); }
 
-    cliopt("-v, --verbose\t\t\tIncrease verbosity") { verbose++; }
+    cliopt("-v, --verbose ($VERBOSE)\tIncrease verbosity") { 
+      if (cliisdefault()) 
+        verbose = atoi(cliarg);
+      else verbose++; 
+    }
 
     cliopt("-x, --xrays n ($XRAYS,1)\tNumber of rays", is_positive) { xrays = atoi(cliarg); }
 
