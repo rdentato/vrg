@@ -14,8 +14,6 @@ DEBUG=-DDEBUG
 SRC=../src
 DIST=../dist
 
-include $(SRC)/makefile
- 
 CFLAGS= $(XFLAGS) -std=c11 -O2 -Wall -I$(DIST) -I. $(ARCH) $(STATIC) $(DEBUG)
 LIBS=
 
@@ -28,13 +26,13 @@ all: $(TESTS)
 
 MAKEFLAGS += --no-builtin-rules
 
-%.o: %.c $(SRC)/vrg.h $(SRC)/cli.h
+%.o: %.c $(DIST)/vrg.h $(DIST)/cli.h
 	$(CC) $(CFLAGS) -o $*.o -c $< 
 
 %$(_EXE): %.o 
 	$(CC) $(ARCH) -s -o $* $< $(LIBS)
 
-%.obj: %.c $(SRC)/vrg.h
+%.obj: %.c $(DIST)/vrg.h
 	$(CC) $(ARCH) $(CFLAGS) -o $*.obj -c $< 
 
 .PRECIOUS: %.o %.obj

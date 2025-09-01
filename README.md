@@ -11,3 +11,7 @@ This repo is home of two single header libraries
   - `cli.h` - for defining Command Line Interfaces (with commands and options)
 
 To incorporate them in your project, use the headers in the `dist/` directory.
+The fully commented code is in the `src/` directory.
+
+The `demo/` directory containes examples that covers multiple use cases.
+Programmer's manuals for both libriaries are in the `docs/` directory.
