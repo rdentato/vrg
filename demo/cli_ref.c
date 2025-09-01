@@ -5,7 +5,7 @@
 static char *is_positive(char *s) {
   char *end; long v = strtol(s, &end, 10);
   if (*end) return "Not an integer";
-  return (v > 0) ? NULL : "Must be > 0";
+  return (v > 0) ? NULL : "Value must be > 0";
 }
 
 int main(int argc, char **argv) {
@@ -21,7 +21,9 @@ int main(int argc, char **argv) {
       else verbose++; 
     }
 
-    cliopt("-x, --xrays n ($XRAYS,1)\tNumber of rays", is_positive) { xrays = atoi(cliarg); }
+    cliopt("-x, --xrays n ($XRAYS,1)\tNumber of rays", is_positive) { 
+      xrays = atoi(cliarg); 
+    }
 
     cliopt("-T, --temperature temp (42)\tSet temperature (default 42)") {
       int t = atoi(cliarg);

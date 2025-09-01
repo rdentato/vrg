@@ -24,6 +24,10 @@
 #define CLI_STR_ERROR_MSG "Missing or invalid value for"
 #endif
 
+#ifndef CLI_STR_ERROR
+#define CLI_STR_ERROR "ERROR"
+#endif
+
 #ifndef CLI_STR_USAGE
 #define CLI_STR_USAGE "USAGE"
 #endif
@@ -97,25 +101,31 @@ static unsigned short cli_num_arguments = 0;
 
 static unsigned short cli_cmd_found = 0;
 
+static int cli_default_errors = 0;
+
 static char *clierrormsg = CLI_STR_ERROR_MSG;
 
 typedef char * (*cli_chk_t)(char *);
 
 #define cliisdefault()  (clindx == 0)
-#define cliwarning(...) (fflush(stdout), fprintf(stderr,"%s: ",cliprogname), fprintf(stderr,"" __VA_ARGS__), fputc('\n',stderr))
 
-#define clierror(s,...) \
+#define clierror(s,...)   cli_prt_error(1,s,__VA_ARGS__)
+#define cliwarning(s,...) cli_prt_error(0,s,__VA_ARGS__)
+
+#define cli_message(...) (fflush(stdout), fprintf(stderr,"%s: ",cliprogname), fprintf(stderr,"" __VA_ARGS__), fputc('\n',stderr))
+
+#define cli_prt_error(x,s,...) \
   do { \
     char *cli_err = s;\
     if (cli_err) { \
       if (cli_err[0] == '\0') cli_err = clierrormsg; \
-        cliwarning(vrg(cli_error_arg_,cli_err,__VA_ARGS__));\
-        exit(1); \
+        cli_message(vrg(cli_error_arg_,cli_err,__VA_ARGS__));\
+      if (x) exit(1); \
     } \
   } while(0)
 
-#define cli_error_arg_2(s,a)    "ERROR: %s '%s'%s\n",s,a,(cliisdefault()?" (default)":"")
-#define cli_error_arg_3(s,a,n)  "ERROR: %s '%.*s'%s\n",s,n,a,(cliisdefault()?" (default)":"")
+#define cli_error_arg_2(s,a)    CLI_STR_ERROR ": %s '%s'%s\n",s,a,(cliisdefault()?" (default)":"")
+#define cli_error_arg_3(s,a,n)  CLI_STR_ERROR ": %s '%.*s'%s\n",s,n,a,(cliisdefault()?" (default)":"")
 
 static inline int cli_is_endchr(char c) {
   return c == '\0' || c == '\t' || c == '(' || c == ')';
@@ -125,7 +135,7 @@ static inline int cli_is_skipchr(char c) {
   char *skip = " .,|;:*?!@#/&%~=^";
   while(*skip) if (c == *skip++) return 1;
   return 0;
-}
+} 
 
 static int cli_parse_short(cli_option_t *opt, char **cur) 
 {
@@ -232,8 +242,9 @@ static int cli_parse_default(cli_option_t *opt, char **cur, cli_chk_t cli_chk_fn
 
   char *err_msg = cli_chk_fn(cliarg);
   if (err_msg) {
-    clierror(err_msg,arg,len);
+    cliwarning(err_msg,arg,len);
     opt->flags |= CLI_OPT_ARG_ERROR;
+    cli_default_errors++;
   }
 
   *cur = d;
@@ -300,7 +311,6 @@ static int cli_print_cmd(char *cmd)
 
 int cli_usage(int xt) {
   cli_option_t *opt;
-  int not_optional = 0;
 
   if (cliheader != NULL) fprintf(stderr,"%s\n",cliheader);
   fprintf(stderr, CLI_STR_USAGE ": %s", cliprogname);
@@ -310,7 +320,7 @@ int cli_usage(int xt) {
   if (cli_num_arguments > 0) {
     for (opt = cli_head; opt != NULL; opt = opt->next) 
       if (!(opt->flags & (CLI_OPT_FLAG_SHORT | CLI_OPT_FLAG_LONG | CLI_OPT_COMMAND))) {
-        not_optional = !(opt->flags & CLI_OPT_OPTIONAL);
+        int not_optional = !(opt->flags & CLI_OPT_OPTIONAL);
         fprintf(stderr," %s%.*s%s","["+not_optional,opt->optname_len, opt->def+opt->optname_offset,"]"+not_optional);
       }
   }
@@ -476,6 +486,7 @@ static int cli_double_dash()
   for ( cliarg = cli_emptystr, cli_opt_found = 0; \
        (clindx < cliargc) ; \
        (clindx += cli_no_reparse()), cliarg = cli_emptystr, cli_opt_found = 0) \
+   if (cli_default_errors) cliusage(CLIEXIT); else \
    if (cli_double_dash()) continue; else
 
 #define cli_new_opt VRG_join(cli_opt_,__LINE__)
