@@ -10,7 +10,7 @@
 //          `Y8bood8P'  o888ooooood8 o888o 
 
 #ifndef CLI_VERSION
-#define CLI_VERSION 0x0001002B
+#define CLI_VERSION 0x0011002B
 
 #include <stdio.h>
 #include <stddef.h>
@@ -21,7 +21,7 @@
 //.  SPDX-FileCopyrightText: © 2025 Remo Dentato (rdentato@gmail.com)
 //.  SPDX-License-Identifier: MIT
 #ifndef VRG_VERSION
-#define VRG_VERSION 0x0010000B // 0.10.0-beta
+#define VRG_VERSION 0x0011000B // 0.11.0-beta
 #define VRG_jn(x,y)    VRG_exp(x ## y)
 #define VRG_join(x,y)  VRG_jn(x, y)
 #define VRG_exp(...) __VA_ARGS__
@@ -45,6 +45,10 @@
 
 #ifndef CLI_STR_ERROR
 #define CLI_STR_ERROR "ERROR"
+#endif
+
+#ifndef CLI_STR_DEFAULT
+#define CLI_STR_DEFAULT " (default)"
 #endif
 
 #ifndef CLI_STR_USAGE
@@ -143,8 +147,8 @@ typedef char * (*cli_chk_t)(char *);
     } \
   } while(0)
 
-#define cli_error_arg_2(s,a)    CLI_STR_ERROR ": %s '%s'%s\n",s,a,(cliisdefault()?" (default)":"")
-#define cli_error_arg_3(s,a,n)  CLI_STR_ERROR ": %s '%.*s'%s\n",s,n,a,(cliisdefault()?" (default)":"")
+#define cli_error_arg_2(s,a)    CLI_STR_ERROR ": %s '%s'%s\n",s,a,(cliisdefault()? CLI_STR_DEFAULT :"")
+#define cli_error_arg_3(s,a,n)  CLI_STR_ERROR ": %s '%.*s'%s\n",s,n,a,(cliisdefault()? CLI_STR_DEFAULT :"")
 
 static inline int cli_is_endchr(char c) {
   return c == '\0' || c == '\t' || c == '(' || c == ')';

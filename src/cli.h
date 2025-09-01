@@ -10,7 +10,7 @@
 //          `Y8bood8P'  o888ooooood8 o888o 
 
 #ifndef CLI_VERSION
-#define CLI_VERSION 0x0001002B
+#define CLI_VERSION 0x0011002B
 
 #include <stdio.h>
 #include <stddef.h>
@@ -26,6 +26,10 @@
 
 #ifndef CLI_STR_ERROR
 #define CLI_STR_ERROR "ERROR"
+#endif
+
+#ifndef CLI_STR_DEFAULT
+#define CLI_STR_DEFAULT " (default)"
 #endif
 
 #ifndef CLI_STR_USAGE
@@ -124,8 +128,8 @@ typedef char * (*cli_chk_t)(char *);
     } \
   } while(0)
 
-#define cli_error_arg_2(s,a)    CLI_STR_ERROR ": %s '%s'%s\n",s,a,(cliisdefault()?" (default)":"")
-#define cli_error_arg_3(s,a,n)  CLI_STR_ERROR ": %s '%.*s'%s\n",s,n,a,(cliisdefault()?" (default)":"")
+#define cli_error_arg_2(s,a)    CLI_STR_ERROR ": %s '%s'%s\n",s,a,(cliisdefault()? CLI_STR_DEFAULT :"")
+#define cli_error_arg_3(s,a,n)  CLI_STR_ERROR ": %s '%.*s'%s\n",s,n,a,(cliisdefault()? CLI_STR_DEFAULT :"")
 
 static inline int cli_is_endchr(char c) {
   return c == '\0' || c == '\t' || c == '(' || c == ')';
