@@ -201,7 +201,7 @@ Typical pattern:
 
 ```c
 cliopt("<list> [filter]\tList items, optionally filtered") {
-  const char *flt = cliarg; // NULL if omitted
+  const char *flt = cliarg; // Empty string "" if omitted
   /* ... */
 }
 ```
