@@ -321,7 +321,7 @@ cliopt("-L, --luminosity lum ($LUMEN,100)\tLuminosity") {
 
 * **Always include a final `cliopt()`** with no spec; make it last.
 * If you define **commands**, ensure they are checked before general positionals so they don’t get mistaken for filenames.
-* For **optional arguments**, check `cliarg` for `NULL`.
+* For missing **optional arguments**, check `cliarg[0]` for `0`.
 * When using defaults, gate side-effects if needed:
 
   ```c
@@ -396,7 +396,7 @@ int main(int argc, char **argv) {
 
 * **Runtime**
 
-  * `char *cliarg;`          // current value (or NULL for missing optional)
+  * `char *cliarg;`          // current value (or a pointer to "" for missing optional)
   * `int  clindx;`          // index of next unprocessed argv
   * `int  cliisdefault(void);`      // true when running due to a default
   * `void cliusage(int mode);`      // prints usage; `CLIEXIT` to exit
