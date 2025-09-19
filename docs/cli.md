@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
     }
 
     cliopt("-O, --optimize [level]\tOptimize up to the specified level") {
-      int level = cliarg ? atoi(cliarg) : 1; // optional arg
+      int level = cliarg[0] ? atoi(cliarg) : 1; // optional arg
       /* ... */
     }
 
