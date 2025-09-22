@@ -1,6 +1,6 @@
-# Programmer’s Manual for `vrg()` and `vrg_()`
+# Programmer’s Manual for `vrg` 
 
-This manual explains how to use the `vrg()` and `vrg_()` macros to emulate **optional arguments** and **macro overloading by arity** in portable C (C11 preprocessor). It also dives into how the selection works, edge cases, and how to extend the max arity.
+This manual explains how to use the `vrg` macros to emulate **optional arguments** and **macro overloading by arity** in portable C (C11 preprocessor). It also dives into how the selection works, edge cases, and how to extend the max arity.
 
 > **Scope:** The API lives entirely in macros. There’s no linker/runtime cost—selection happens at preprocess time.
 
@@ -73,9 +73,17 @@ yourfunc(5, 'q');           // -> yourfunc__(5,'q')
   * Expands to `f_0(__VA_ARGS__)` for zero arguments; `f_1(__VA_ARGS__)`, …, up to `f_9`.
   * **Limit:** up to **9** arguments out of the box (configurable; see §7.1).
 
-* `vrg_(f_, ...)`
+* `vrg0(f_, ...)`
 
   * Expands to `f_0()` for zero arguments; `f__(__VA_ARGS__)` for **one or more** arguments.
+
+* `vrg1(f_, ...)`
+
+  * Expands to `f_1(__VA_ARGS__)` for one or less arguments; `f__(__VA_ARGS__)` for **two or more** arguments.
+
+* `vrg2(f_, ...)`
+
+  * Expands to `f_2(__VA_ARGS__)` for two or less arguments; `f__(__VA_ARGS__)` for **three or more** arguments.
 
 ### 2.2 Required arity targets
 
@@ -84,10 +92,20 @@ yourfunc(5, 'q');           // -> yourfunc__(5,'q')
   * e.g., `f_0`, `f_1`, `f_2`, … up to your max arity.
   * If a call resolves to an undefined `f_k`, you’ll get a **preprocessor/compile error**.
 
-* For `vrg_(f_, ...)`, define:
+* For `vrg0(f_, ...)`, define:
 
   * `f_0` (zero-arg case)
   * `f__` (the “one or more args” case)
+
+* For `vrg1(f_, ...)`, define:
+
+  * `f_1` (one-arg case)
+  * `f__` (the “two or more args” case)
+
+* For `vrg2(f_, ...)`, define:
+
+  * `f_2` (two-args case)
+  * `f__` (the “three or more args” case)
 
 ---
 
@@ -160,6 +178,8 @@ show(1, (int)2) // -> show_2(1,(int)2) OK
 ## 4) How It Works (Under the Hood)
 
 You don’t have to understand this to use it, but it helps when customizing or debugging.
+This is just an overview, the fully commented **`src/vrg.h`** source code provides the
+details on the latest version
 
 ### 4.1 Building blocks
 
@@ -201,14 +221,14 @@ You don’t have to understand this to use it, but it helps when customizing or 
 * **Selector**
 
   ```c
-  #define VRG_fn_sel(ret,...) \
-    VRG_join(VRG_fn_, \
+  #define VRG_sel(ret,...) \
+    VRG_join(VRG_sel_, \
       VRG_join(VRG_ncommas(VRG_comma __VA_ARGS__ ()), \
                VRG_ncommas(VRG_comma __VA_ARGS__))) (ret)
 
-  #define VRG_fn_1_(ret) 0   /* no args -> 0 */
-  #define VRG_fn_11(ret) ret /* 1+ args -> ret */
-  #define VRG_fn___(ret) ret /* 1+ args -> ret */
+  #define VRG_sel_1_(ret) 0   /* no args -> 0 */
+  #define VRG_sel_11(ret) ret /* 1+ args -> ret */
+  #define VRG_sel___(ret) ret /* 1+ args -> ret */
   ```
 
   So:
@@ -418,41 +438,11 @@ You normally only use **`vrg`** and **`vrg_`** and define your `prefix_0`, `pref
 
 ---
 
-## 13) Minimal Self-Test (drop-in)
-
-```c
-/* Expect which macro fires; compile to see preprocessed output or run to observe prints */
-#include <stdio.h>
-#include "vrg.h"
-
-#define PFX(...) vrg(PFX_, __VA_ARGS__)
-#define PFX_0()        puts("0")
-#define PFX_1(a)       puts("1")
-#define PFX_2(a,b)     puts("2")
-#define PFX_3(a,b,c)   puts("3")
-
-#define QFX(...) vrg_(QFX_, __VA_ARGS__)
-#define QFX_0()        puts("Q0")
-#define QFX__(...)     puts("Q+")
-int main(void) {
-  PFX();               // 0
-  PFX(1);              // 1
-  PFX((int)2);         // 1
-  PFX(1,2);            // 2
-  PFX((int)1,2);       // 2
-  QFX();               // Q0
-  QFX(7);              // Q+
-  QFX(7,8);            // Q+
-  return 0;
-}
-```
-
----
-
-## 14) Summary
+## 13) Summary
 
 * Use **`vrg()`** when you want **exact arity selection** (`_0.._9`).
-* Use **`vrg_()`** when you only care about **zero** vs **one or more** (`_0` vs `__`).
+* Use **`vrg0()`** when you only care about **zero** vs **one or more** (`_0` vs `__`).
+* Similarly for **`vrg1()`** and **`vrg2()`**.
 * Parenthesize arguments that contain commas.
 * Extend the internal counters if you need more than 9 arguments.
 * Enjoy zero-runtime-cost, portable “optional arguments” in C.

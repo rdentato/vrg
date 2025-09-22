@@ -1,7 +1,7 @@
 //.  SPDX-FileCopyrightText: © 2025 Remo Dentato (rdentato@gmail.com)
 //.  SPDX-License-Identifier: MIT
 #ifndef VRG_VERSION
-#define VRG_VERSION 0x0011000B // 0.11.0-beta
+#define VRG_VERSION 0x0021000B // 0.21.0-beta
 
 //    oooooo     oooo ooooooooo.     .oooooo.    
 //     `888.     .8'  `888   `Y88.  d8P'  `Y8b   
@@ -71,12 +71,12 @@
 // The macro function `VRG_nargs()` counts how many arguments are present. If no
 // argument is there it still returns 1.
 // The macro function `VRG_ncommas()` counts how many commas are are present. 
-// It returns 1 if there is only one comma and `_` in all other cases.
+// It returns `0` if there is only one comma and `_` in all other cases.
 // The macro `VRG_count` allows up to 9 arguments for a function.
 
 #define VRG_count(x1,x2,x3,x4,x5,x6,x7,x8,x9,xA,xN, ...) xN
-#define VRG_nargs(...)   VRG_exp(VRG_count(__VA_ARGS__, A, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0))
-#define VRG_ncommas(...) VRG_exp(VRG_count(__VA_ARGS__, _, _, _, _, _, _, _, _, 1, _, _))
+#define VRG_nargs(...)    VRG_exp(VRG_count(__VA_ARGS__, A, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0))
+#define VRG_ncommas(...)  VRG_exp(VRG_count(__VA_ARGS__, _, _, _, _, _, _, _, _, 1, _, _))
 
 // ## A comma
 #define VRG_comma(...) ,
@@ -124,7 +124,7 @@
 //     e- There are two arguments and the first one does  start with '(' (type cast): 
 //        Then it will expand to `VRG_comma (x),y` which will expand to `,,y` and
 //        `VRG_ncommas` will expand to `_`
-//     f- In all the other cases, the expressions exapnds to `_` because there is more than 1 comma.
+//     f- In all the other cases, the expression expands to `_` because there is more than 1 comma.
 //
 //  Putting together these cases with the expression, we'll get:
 //  
@@ -146,23 +146,52 @@
 //   - `11` one casted argument or two arguments.
 //   - `__` In all other cases.
 //
-//  The macro `VRG_fn_sel` uses this expression to select the right function to call. 
+//  The macro `VRG_sel` uses this expression to select the right function to call. 
 
-#define VRG_fn_sel(ret,...) \
-   VRG_join(VRG_fn_, \
-            VRG_join(VRG_ncommas(VRG_comma __VA_ARGS__ ()), VRG_ncommas(VRG_comma __VA_ARGS__ ))) (ret)
+#define VRG_sel(x,...) \
+   VRG_join(VRG_sel_, \
+            VRG_join(VRG_ncommas(VRG_comma __VA_ARGS__ ()), VRG_ncommas(VRG_comma __VA_ARGS__ ))) (x)
 
-//  `VRG_fn_1_(ret)` will always return `0`
-//  `VRG_fn_11(ret)` and `VRG_fn_11(ret)` will return their argument.
+//  `VRG_sel_1_(ret)` will always return `0`
+//  `VRG_sel_11(ret)` and `VRG_sel___(ret)` will return their argument.
 // The `ret` parameter is there to support the `vrg` and `vrg_` variants. 
-#define VRG_fn_1_(ret) 0
-#define VRG_fn_11(ret) ret
-#define VRG_fn___(ret) ret
+#define VRG_sel_1_(x) 0
+#define VRG_sel_11(x) x
+#define VRG_sel___(x) x
 
 // Use `vrg()` to define functions f_0, ..., f_9 for 0, ..., 9 arguments
-#define vrg(f_,...)  VRG_join(f_, VRG_fn_sel(VRG_nargs(__VA_ARGS__),__VA_ARGS__))(__VA_ARGS__)
+#define vrg(f_,...)  VRG_join(f_, VRG_sel(VRG_nargs(__VA_ARGS__),__VA_ARGS__))(__VA_ARGS__)
 
-// Use `vrg_()` to define functions f_0 for no arguments and f__ for any number of arguments
-#define vrg_(f_,...) VRG_join(f_, VRG_fn_sel(_                     ,__VA_ARGS__))(__VA_ARGS__)
+// ## N or more arguments
+
+// In some cases, rather than being interested in how many argument the function call has, one
+// might be interested in the fact that it as been called with a certain number of arguments
+// or more than that. For example, `send()` could send a default message whereas `send("%d",x)`
+// would work like `printf()`. In those case it is much convenient not to be limeted in the
+// number of arguments and just have a single function to call when more than the specified
+// arguments are passed. The macros `vrg0()`, `vrg1()`, and `vrg2()` can be used for this.
+
+#define VRG_frst(x,...) x
+#define VRG_scnd(x,...) VRG_frst(__VA_ARGS__)
+#define VRG_tail(x,...) __VA_ARGS__
+#define VRG_tail2(x,...) VRG_tail(__VA_ARGS__)
+
+#define VRG_precomma(...) VRG_comma
+
+#define VRG_sel_n(x,...) \
+   VRG_join(VRG_sel_ ,VRG_ncommas(VRG_exp(VRG_precomma VRG_frst(__VA_ARGS__) () VRG_scnd(__VA_ARGS__) ())))(x)
+
+#define VRG_sel_1(x) x
+#define VRG_sel__(x) _
+
+// Use `vrg0()` to define functions f_0 for no arguments and f__ for any number of arguments
+#define vrg0(f_,...)  VRG_join(f_,VRG_sel_n(0,__VA_ARGS__))(__VA_ARGS__)
+// Use `vrg1()` to define functions f_1 for one argument (or less) and f__ for more than one argument
+#define vrg1(f_,...)  VRG_join(f_,VRG_sel_n(1,VRG_tail(__VA_ARGS__)))(__VA_ARGS__)
+// Use `vrg2()` to define functions f_2 for two arguments (or less) and f__ for more than two arguments
+#define vrg2(f_,...)  VRG_join(f_,VRG_sel_n(2,VRG_tail2(__VA_ARGS__)))(__VA_ARGS__)
+
+// Just for backward compatibility. Deprecated.
+#define vrg_(f_,...)  vrg0(f_,...)
 
 #endif // VRG_VERSION_H

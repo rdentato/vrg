@@ -10,7 +10,7 @@
 //          `Y8bood8P'  o888ooooood8 o888o 
 
 #ifndef CLI_VERSION
-#define CLI_VERSION 0x0011002B
+#define CLI_VERSION 0x0021002B
 
 #include <stdio.h>
 #include <stddef.h>
@@ -371,9 +371,13 @@ static char *cli_get_arg(cli_option_t *opt, char *arg)
   return cliarg;
 }
 
-// Repars is needed when the user puts together multiple short options
+// Reparse is needed when the user puts together multiple short options
 // like in `ps -aux` instead of `ps -a -u -x`.
-static int cli_reparse_ndx = 1;
+
+// This tells which char too look at into the arg
+static int cli_reparse_ndx = 1; 
+
+// If it's 1 we're looking at the first not (we're not reparsing)
 #define cli_no_reparse() (cli_reparse_ndx == 1)
 
 static int cli_check_short(cli_option_t *opt, char *arg)
